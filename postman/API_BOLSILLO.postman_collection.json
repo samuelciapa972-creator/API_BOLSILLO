@@ -1,0 +1,582 @@
+{
+  "info": {
+    "name": "API Bolsillo — Lab 5 Parte 1 (Integridad referencial + API Keys)",
+    "description": "Colección de evidencias para el checkpoint del Bloque 1 (integridad referencial), Bloque 2 (pruebas manuales de lógica de negocio) y Bloque 3 (API Key). Ejecuta las carpetas EN ORDEN. Antes de la carpeta 'Bloque 2', reinicia el servidor (Ctrl+C y `npm run dev`) para volver a la data semilla, porque la carpeta 1 modifica el saldo del bolsillo 1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "X-API-Key", "type": "string" },
+      { "key": "value", "value": "{{apiKey}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Bloque 1 - Integridad referencial",
+      "description": "Usa la data semilla original (usuario 1 con cuenta 1; bolsillo 1 con saldo 80000). Ejecuta en orden, de arriba hacia abajo.",
+      "item": [
+        {
+          "name": "1.1 DELETE usuario con cuenta -> 409",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios/1", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "1"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.2 POST usuario nuevo (sin cuentas) -> 201",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario Prueba Integridad\",\n  \"documento\": \"3216549870\",\n  \"email\": \"prueba.integridad@example.com\",\n  \"telefono\": \"3111111111\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('usuarioNuevoId', data.usuario.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.3 DELETE usuario nuevo (sin relaciones) -> 200",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios/{{usuarioNuevoId}}", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "{{usuarioNuevoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.4 DELETE bolsillo con saldo -> 409",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/bolsillos/1", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "1"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.5 POST devolver 80000 del bolsillo 1 (vacía el saldo) -> 201",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 80000,\n  \"descripcion\": \"Devolucion para liberar el bolsillo\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos/1/devolver", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "1", "devolver"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.6 DELETE bolsillo 1 (ya sin saldo, pero con transacciones) -> 409",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/bolsillos/1", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "1"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.7 POST bolsillo nuevo (sin relaciones) -> 201",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaId\": 1,\n  \"nombre\": \"Bolsillo Prueba Temporal\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.environment.set('bolsilloNuevoId', data.bolsillo.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.8 DELETE bolsillo nuevo (sin relaciones) -> 200",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloNuevoId}}", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "{{bolsilloNuevoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.9 PATCH cuenta 1 a cerrada con saldo > 0 -> 409",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"cerrada\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/cuentas/1/estado", "host": ["{{baseUrl}}"], "path": ["api", "cuentas", "1", "estado"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.10 DELETE usuario con id inválido -> 400",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios/abc", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "abc"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', function () { pm.response.to.have.status(400); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1.11 DELETE usuario inexistente -> 404",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios/9999", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "9999"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bloque 2 - Pruebas manuales de logica de negocio",
+      "description": "REINICIA EL SERVIDOR ANTES DE ESTA CARPETA (Ctrl+C y npm run dev) para volver a la data semilla original.",
+      "item": [
+        {
+          "name": "2.1 POST bolsillo con Mass Assignment (saldo:999999) -> 201, saldo real 0",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaId\": 1,\n  \"nombre\": \"Bolsillo Mass Assignment\",\n  \"saldo\": 999999\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "const data = pm.response.json();",
+                  "pm.test('saldo ignorado, queda en 0', function () { pm.expect(data.bolsillo.saldo).to.eql(0); });",
+                  "pm.environment.set('bolsilloMassId', data.bolsillo.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.2 PATCH archivar bolsillo (saldo 0) -> 200",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"archivado\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloMassId}}/estado", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "{{bolsilloMassId}}", "estado"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.3 PATCH intentar reactivar bolsillo archivado -> 409",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"activo\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloMassId}}/estado", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "{{bolsilloMassId}}", "estado"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.4 CASO ESTRELLA: retiro 50000 con 80000 apartados (disponible 20000) -> 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": 1,\n  \"monto\": 50000,\n  \"descripcion\": \"Retiro que excede el disponible\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/transacciones/retiro", "host": ["{{baseUrl}}"], "path": ["api", "transacciones", "retiro"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.5 POST transferencia a la misma cuenta -> 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": 1,\n  \"cuentaDestinoId\": 1,\n  \"monto\": 1000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/transacciones/transferencia", "host": ["{{baseUrl}}"], "path": ["api", "transacciones", "transferencia"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.6.1 Crear bolsillo 1/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 1\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.2 Crear bolsillo 2/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 2\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.3 Crear bolsillo 3/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 3\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.4 Crear bolsillo 4/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 4\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.5 Crear bolsillo 5/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 5\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.6 Crear bolsillo 6/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 6\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.7 Crear bolsillo 7/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 7\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.8 Crear bolsillo 8/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 8\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.9 Crear bolsillo 9/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 9\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.10 Crear bolsillo 10/10 en cuenta 2",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 10\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "2.6.11 Crear bolsillo 11 (excede el maximo) -> 409",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 11\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', function () { pm.response.to.have.status(409); });"], "type": "text/javascript" } }]
+        }
+      ]
+    },
+    {
+      "name": "Bloque 3 - API Key",
+      "description": "Antes de correr esta carpeta, abre el entorno 'API Bolsillo - Local' y pega en la variable 'apiKey' el valor real que está en tu archivo .env.",
+      "item": [
+        {
+          "name": "3.1 GET usuarios sin X-API-Key -> 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', function () { pm.response.to.have.status(401); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.2 GET usuarios con X-API-Key incorrecta -> 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "X-API-Key", "value": "{{apiKeyIncorrecta}}" }],
+            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', function () { pm.response.to.have.status(401); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.3 GET usuarios con X-API-Key correcta -> 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.4 GET usuarios con la key en query string (sin header) -> 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios?apiKey={{apiKey}}", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"], "query": [{ "key": "apiKey", "value": "{{apiKey}}" }] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', function () { pm.response.to.have.status(401); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.5 GET / (publica, sin key) -> 200",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.6 GET /api-docs (publica, sin key) -> 200",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api-docs", "host": ["{{baseUrl}}"], "path": ["api-docs"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.7 GET /openapi.json (publica, sin key) -> 200",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/openapi.json", "host": ["{{baseUrl}}"], "path": ["openapi.json"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+        },
+        {
+          "name": "3.8 Defense in depth: DELETE usuario 1 con key valida sigue dando 409",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/usuarios/1", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "1"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', function () { pm.response.to.have.status(409); });"], "type": "text/javascript" } }]
+        }
+      ]
+    }
+  ]
+}
