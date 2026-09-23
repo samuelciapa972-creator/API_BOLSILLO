@@ -85,7 +85,8 @@ API_HOSPITAL/
 │   │   ├── usuarios.js
 │   │   ├── cuentas.js
 │   │   ├── transacciones.js
-│   │   └── bolsillos.js
+│   │   ├── bolsillos.js
+│   │   └── apiKeys.js
 │   │
 │   ├── docs/
 │   │   └── swagger.js
@@ -95,6 +96,7 @@ API_HOSPITAL/
 │   │   ├── cuentas.validator.js
 │   │   ├── transacciones.validator.js
 │   │   ├── bolsillos.validator.js
+│   │   ├── apiKey.middleware.js
 │   │   ├── errores.middleware.js
 │   │   └── validar.middleware.js
 │   │
@@ -102,13 +104,19 @@ API_HOSPITAL/
 │   │   ├── usuarios.routes.js
 │   │   ├── cuentas.routes.js
 │   │   ├── transacciones.routes.js
-│   │   └── bolsillos.routes.js
+│   │   ├── bolsillos.routes.js
+│   │   └── seguridad.routes.js
 │   │
 │   ├── services/
 │   │   ├── usuarios.service.js
 │   │   ├── cuentas.service.js
 │   │   ├── transacciones.service.js
-│   │   └── bolsillos.service.js
+│   │   ├── bolsillos.service.js
+│   │   └── apiKeys.service.js
+│   │
+│   ├── utils/
+│   │   ├── comunes.js
+│   │   └── crypto.util.js
 │   │
 │   └── app.js
 │

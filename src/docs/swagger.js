@@ -97,6 +97,14 @@ const options = {
 
         description:
           "Gestión de metas de ahorro que apartan saldo dentro de una cuenta"
+      },
+
+      {
+        name:
+          "Seguridad",
+
+        description:
+          "Endpoints relacionados con autenticación y seguridad de la API"
       }
 
     ]

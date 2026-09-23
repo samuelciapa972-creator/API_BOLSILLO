@@ -68,6 +68,12 @@ const bolsillosRoutes =
   );
 
 
+const seguridadRoutes =
+  require(
+    "./routes/seguridad.routes"
+  );
+
+
 // ========================================
 // Middleware de errores
 // ========================================
@@ -287,6 +293,12 @@ app.use(
 app.use(
   "/api/bolsillos",
   bolsillosRoutes
+);
+
+
+app.use(
+  "/api/seguridad",
+  seguridadRoutes
 );
 
 
