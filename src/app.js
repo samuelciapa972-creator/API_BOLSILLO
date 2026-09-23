@@ -74,6 +74,12 @@ const seguridadRoutes =
   );
 
 
+const authRoutes =
+  require(
+    "./routes/auth.routes"
+  );
+
+
 // ========================================
 // Middleware de errores
 // ========================================
@@ -299,6 +305,15 @@ app.use(
 app.use(
   "/api/seguridad",
   seguridadRoutes
+);
+
+
+// Registro e inicio de sesión de personas.
+// También exige API Key: primero se valida
+// la aplicación y luego el usuario.
+app.use(
+  "/api/auth",
+  authRoutes
 );
 
 
