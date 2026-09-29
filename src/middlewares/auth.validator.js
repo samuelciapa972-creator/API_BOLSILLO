@@ -60,18 +60,10 @@ const validarRegistro = [
     })
     .withMessage(
       "La contraseña debe tener entre 10 y 72 caracteres"
-    ),
-
-
-  body("rol")
-    .isIn([
-      "administrador",
-      "cliente",
-      "auditor"
-    ])
-    .withMessage(
-      "El rol debe ser administrador, cliente o auditor"
     )
+
+  // El rol NO se valida aquí: el cliente
+  // no puede definirlo. Lo asigna el servidor.
 ];
 
 

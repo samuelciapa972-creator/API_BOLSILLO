@@ -32,7 +32,6 @@ const validar = require(
  *         - nombre
  *         - email
  *         - password
- *         - rol
  *
  *       properties:
  *
@@ -40,12 +39,12 @@ const validar = require(
  *           type: string
  *           minLength: 3
  *           maxLength: 100
- *           example: Administrador Bolsillo
+ *           example: Cliente Bolsillo
  *
  *         email:
  *           type: string
  *           format: email
- *           example: admin@bolsillo.com
+ *           example: cliente@bolsillo.com
  *
  *         password:
  *           type: string
@@ -53,11 +52,6 @@ const validar = require(
  *           minLength: 10
  *           maxLength: 72
  *           example: ClaveSegura2026!
- *
- *         rol:
- *           type: string
- *           enum: [administrador, cliente, auditor]
- *           example: administrador
  *
  *     LoginUsuario:
  *       type: object
@@ -71,7 +65,7 @@ const validar = require(
  *         email:
  *           type: string
  *           format: email
- *           example: admin@bolsillo.com
+ *           example: cliente@bolsillo.com
  *
  *         password:
  *           type: string
@@ -88,10 +82,12 @@ const validar = require(
  *       - Autenticación
  *
  *     summary:
- *       Registrar un usuario
+ *       Registrar un nuevo usuario
  *
- *     description:
- *       Registra un usuario almacenando su contraseña mediante bcrypt (hash + salt).
+ *     description: >
+ *       Registra un nuevo usuario utilizando bcrypt para proteger
+ *       la contraseña. El rol es asignado por el servidor ("cliente")
+ *       y no puede ser definido por el cliente.
  *
  *     requestBody:
  *       required: true

@@ -39,8 +39,9 @@ const obtenerUsuarioPorId = (id) => {
 
 // ========================================
 // Crear usuario
-// El estado "activo" lo fija el servidor,
-// nunca se toma del cliente
+// El rol y el estado "activo" los fija el
+// servidor, nunca se toman del cliente
+// (evita escalada de privilegios)
 // ========================================
 const crearUsuario = async (datos) => {
   const passwordHash =
@@ -62,8 +63,10 @@ const crearUsuario = async (datos) => {
 
     passwordHash,
 
-    rol:
-      datos.rol,
+    // ====================================
+    // Valores controlados por el servidor
+    // ====================================
+    rol: "cliente",
 
     activo: true
   };
@@ -71,8 +74,6 @@ const crearUsuario = async (datos) => {
   usuariosAuth.push(
     nuevoUsuario
   );
-
-
 
   return nuevoUsuario;
 };
