@@ -9,6 +9,13 @@ const authService =
   );
 
 
+const {
+  generarToken
+} = require(
+  "../utils/jwt.util"
+);
+
+
 // ========================================
 // Registro
 // ========================================
@@ -159,8 +166,16 @@ const login = async (
 
 
     // ------------------------------------
+    // Generar JWT
+    // ------------------------------------
+    const token =
+      generarToken(
+        usuario
+      );
+
+
+    // ------------------------------------
     // Login correcto
-    // (todavía no se genera JWT)
     // ------------------------------------
     return res
       .status(200)
@@ -174,7 +189,9 @@ const login = async (
           nombre: usuario.nombre,
           email: usuario.email,
           rol: usuario.rol
-        }
+        },
+
+        token
       });
 
   } catch (error) {

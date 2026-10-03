@@ -53,6 +53,21 @@ const options = {
 
           description:
             "API Key requerida para consumir los endpoints protegidos de la API."
+        },
+
+        BearerAuth: {
+
+          type:
+            "http",
+
+          scheme:
+            "bearer",
+
+          bearerFormat:
+            "JWT",
+
+          description:
+            "JWT obtenido mediante el endpoint de login."
         }
       }
     },
@@ -112,7 +127,7 @@ const options = {
           "Autenticación",
 
         description:
-          "Registro e inicio de sesión de usuarios"
+          "Registro, inicio de sesión (JWT) y perfil del usuario autenticado"
       }
 
     ]

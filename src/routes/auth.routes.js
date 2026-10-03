@@ -20,6 +20,10 @@ const validar = require(
   "../middlewares/validar.middleware"
 );
 
+const autenticarJWT = require(
+  "../middlewares/auth.middleware"
+);
+
 /**
  * @openapi
  * components:
@@ -132,8 +136,10 @@ router.post(
  *     summary:
  *       Iniciar sesión
  *
- *     description:
- *       Verifica email y contraseña. En este bloque todavía no genera JWT.
+ *     description: >
+ *       Verifica email y contraseña. Si son correctas devuelve un JWT
+ *       (firmado con HS256) que se usa como Bearer Token en los
+ *       endpoints que identifican al usuario. Requiere API Key, no JWT.
  *
  *     requestBody:
  *       required: true
@@ -146,7 +152,7 @@ router.post(
  *
  *       200:
  *         description:
- *           Credenciales correctas
+ *           Credenciales correctas; incluye el token JWT
  *
  *       400:
  *         description:
@@ -165,6 +171,49 @@ router.post(
   validarLogin,
   validar,
   login
+);
+
+/**
+ * @openapi
+ * /api/auth/perfil:
+ *   get:
+ *
+ *     tags:
+ *       - Autenticación
+ *
+ *     summary:
+ *       Obtener perfil del usuario autenticado
+ *
+ *     description:
+ *       Requiere API Key y un JWT válido (ambos a la vez).
+ *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
+ *     responses:
+ *
+ *       200:
+ *         description:
+ *           Usuario autenticado correctamente
+ *
+ *       401:
+ *         description:
+ *           Credenciales de autenticación ausentes o inválidas
+ */
+router.get(
+  "/perfil",
+  autenticarJWT,
+  (req, res) => {
+    return res.status(200).json({
+      mensaje:
+        "Usuario autenticado mediante JWT",
+
+      usuario: req.usuario,
+
+      clienteApi: req.clienteApi
+    });
+  }
 );
 
 module.exports = router;

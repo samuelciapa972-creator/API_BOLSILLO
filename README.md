@@ -1,4 +1,4 @@
-# API BOLSILLO — Lab. No.8
+# API BOLSILLO — Lab. No.9
 
 Proyecto para el desarrollo y análisis de seguridad de una API REST para una billetera virtual, utilizando Node.js, Express, Swagger/OpenAPI y herramientas de análisis SAST, SCA y DAST.
 
@@ -100,6 +100,7 @@ API_BOLSILLO/
 │   │   ├── transacciones.validator.js
 │   │   ├── bolsillos.validator.js
 │   │   ├── apiKey.middleware.js
+│   │   ├── auth.middleware.js
 │   │   ├── errores.middleware.js
 │   │   └── validar.middleware.js
 │   │
@@ -122,6 +123,7 @@ API_BOLSILLO/
 │   ├── utils/
 │   │   ├── comunes.js
 │   │   ├── crypto.util.js
+│   │   ├── jwt.util.js
 │   │   └── password.util.js
 │   │
 │   └── app.js
@@ -240,6 +242,65 @@ Respuesta obtenida:
   }
 }
 ```
+
+# Lab. No.9 — Autenticación con JWT
+
+El login deja de limitarse a decir "credenciales correctas": ahora entrega una **credencial temporal** (JWT) que identifica al usuario en los endpoints protegidos.
+
+## Cambios
+
+| Archivo | Cambio |
+|---|---|
+| `package.json` | Nueva dependencia `jsonwebtoken` |
+| `.env` / `.env.example` | `JWT_SECRET` (64 bytes aleatorios, solo en `.env`) y `JWT_EXPIRES_IN=1h` |
+| `src/utils/jwt.util.js` | `generarToken()` firma con **HS256**, `sub` = id del usuario, payload solo `email` y `rol`. `verificarToken()` solo acepta `algorithms: ["HS256"]` |
+| `src/controllers/auth.controller.js` | El login exitoso devuelve `token` |
+| `src/middlewares/auth.middleware.js` | `autenticarJWT`: exige `Authorization: Bearer <token>`, verifica firma y expiración y deja el usuario en `req.usuario` |
+| `src/routes/auth.routes.js` | Nuevo `GET /api/auth/perfil` (API Key **y** JWT) |
+| `src/docs/swagger.js` | Nuevo esquema de seguridad `BearerAuth` |
+
+## Qué lleva el token
+
+```json
+{ "email": "cliente@bolsillo.com", "rol": "cliente", "iat": 1791045847, "exp": 1791049447, "sub": "1" }
+```
+
+Nunca `password`, `passwordHash` ni otros secretos: **firmar no es cifrar**. Cualquiera puede leer el payload con `jwt.decode()`; la firma solo permite detectar alteraciones. `jwt.verify()` sí comprueba firma y expiración.
+
+## API Key + JWT
+
+En OpenAPI, para exigir **ambos** esquemas van en el mismo objeto:
+
+```yaml
+security:
+  - ApiKeyAuth: []
+    BearerAuth: []     # API Key AND Bearer (dos guiones serían OR)
+```
+
+| Endpoint | API Key | JWT | email/password |
+|---|---|---|---|
+| `POST /api/auth/login` | ✅ | ❌ (crea el JWT) | ✅ |
+| `GET /api/auth/perfil` | ✅ | ✅ (consume el JWT) | ❌ |
+
+| Credencial | Identifica | Ejemplo |
+|---|---|---|
+| `X-API-Key` → `req.clienteApi` | la aplicación cliente | Postman Laboratorio |
+| email + password | al usuario (una vez) | cliente@bolsillo.com |
+| JWT → `req.usuario` | la sesión temporal del usuario | `eyJ...` |
+| `rol` | base para la autorización (próximo lab) | cliente |
+
+## Pruebas
+
+| Prueba | Petición | Resultado esperado |
+|---|---|---|
+| Registro | `POST /api/auth/registro` | `201` |
+| Login | `POST /api/auth/login` | `200` + `token` |
+| Perfil con JWT | `GET /api/auth/perfil` + Bearer | `200` + `usuario` y `clienteApi` |
+| Perfil sin JWT | sin `Authorization` | `401` "Token de autenticación requerido" |
+| Formato incorrecto | `Authorization: Token eyJ...` | `401` "Formato de token inválido" |
+| JWT alterado | un carácter cambiado | `401` "Token inválido" |
+| Decodificar | `node -e "console.log(require('jsonwebtoken').decode('TOKEN'))"` | Muestra el payload sin conocer el secreto |
+| Expiración | `JWT_EXPIRES_IN=20s`, esperar > 20 s | `401` "Token expirado" |
 
 # realizar las pruebas y documentar
 SAST → Semgrep
