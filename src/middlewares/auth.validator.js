@@ -95,7 +95,33 @@ const validarLogin = [
 ];
 
 
+// ========================================
+// Crear usuario desde administración
+// Aquí sí se acepta rol, porque la ruta
+// ya está protegida por autorizarRoles
+// ("administrador"). Deliberadamente no se
+// aceptan activo, passwordHash, id ni
+// permisos. Los clientes usan /registro.
+// ========================================
+
+const validarCreacionUsuarioAdministrativo = [
+
+  ...validarRegistro,
+
+
+  body("rol")
+    .isIn([
+      "auditor",
+      "administrador"
+    ])
+    .withMessage(
+      "El rol debe ser auditor o administrador"
+    )
+];
+
+
 module.exports = {
   validarRegistro,
-  validarLogin
+  validarLogin,
+  validarCreacionUsuarioAdministrativo
 };

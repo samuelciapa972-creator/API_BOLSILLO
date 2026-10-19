@@ -1,4 +1,4 @@
-# API BOLSILLO — Lab. No.9
+# API BOLSILLO — Lab. No.10
 
 Proyecto para el desarrollo y análisis de seguridad de una API REST para una billetera virtual, utilizando Node.js, Express, Swagger/OpenAPI y herramientas de análisis SAST, SCA y DAST.
 
@@ -68,6 +68,16 @@ npm install
 
 Copiar `.env.example` a `.env` y ajustar los valores si hace falta.
 
+Desde el Lab. No.10 se configura el administrador inicial:
+
+```
+ADMIN_NOMBRE=Administrador Bolsillo
+ADMIN_EMAIL=admin@bolsillo.com
+ADMIN_PASSWORD=<contraseña segura>
+```
+
+Si faltan, el servidor arranca con la advertencia "Administrador inicial no configurado" y no habrá ningún administrador.
+
 # Estructura del proyecto
 
 ```
@@ -102,6 +112,8 @@ API_BOLSILLO/
 │   │   ├── apiKey.middleware.js
 │   │   ├── auth.middleware.js
 │   │   ├── errores.middleware.js
+│   │   ├── propiedad.middleware.js
+│   │   ├── roles.middleware.js
 │   │   └── validar.middleware.js
 │   │
 │   ├── routes/
@@ -127,6 +139,10 @@ API_BOLSILLO/
 │   │   └── password.util.js
 │   │
 │   └── app.js
+│
+├── postman/
+│   ├── API_BOLSILLO.postman_collection.json
+│   └── API_BOLSILLO.postman_environment.json
 │
 ├── .env
 ├── .env.example
@@ -301,6 +317,100 @@ security:
 | JWT alterado | un carácter cambiado | `401` "Token inválido" |
 | Decodificar | `node -e "console.log(require('jsonwebtoken').decode('TOKEN'))"` | Muestra el payload sin conocer el secreto |
 | Expiración | `JWT_EXPIRES_IN=20s`, esperar > 20 s | `401` "Token expirado" |
+
+# Lab. No.10 — Autorización segura: RBAC, IDOR/BOLA y control de acceso a recursos
+
+Estar autenticado no basta. Ahora cada petición responde dos preguntas:
+
+1. **¿Qué puede hacer este rol?** (RBAC) → `autorizarRoles(...)`.
+2. **¿Este recurso es suyo?** (propiedad) → middlewares de `propiedad.middleware.js`. Esto evita el **IDOR/BOLA**, es decir, cambiar el ID en la URL para ver datos de otra persona.
+
+## Roles
+
+| Rol | Cómo se obtiene | Qué puede hacer |
+|---|---|---|
+| `cliente` | `POST /api/auth/registro` (siempre) | Solo lo suyo: ver, retirar y transferir desde su cuenta y gestionar sus bolsillos |
+| `auditor` | El admin lo crea con `POST /api/auth/usuarios` | Lectura global (solo `GET`) |
+| `administrador` | El inicial se crea al arrancar con `ADMIN_*` del `.env`; los demás, con `POST /api/auth/usuarios` | Todo |
+
+## Cambios
+
+| Archivo | Cambio |
+|---|---|
+| `src/middlewares/roles.middleware.js` | `autorizarRoles(...roles)`: 403 si el rol del JWT no está permitido |
+| `src/middlewares/propiedad.middleware.js` | `autorizarUsuarioPropio`, `autorizarCuentaPropia`, `autorizarCuentaOrigenPropia`, `autorizarCuentaDeBolsilloNuevo`, `autorizarAccesoBolsillo`, `autorizarAccesoTransaccion` |
+| `src/services/auth.service.js` | `crearAdministradorInicial()` (bootstrap) y creación de usuarios privilegiados |
+| `src/app.js` | `iniciarServidor()`: si la inicialización falla, no se abre el puerto |
+| `src/routes/auth.routes.js` | Nuevo `POST /api/auth/usuarios` (solo admin) para crear `auditor` o `administrador` |
+| `src/data/usuarios.js` y `usuarios.validator.js` | Nuevo campo `usuarioAuthId`: asocia el titular de billetera con su login |
+| `src/routes/cuentas.routes.js` | Nuevo `GET /api/cuentas/mis-cuentas` (solo cliente) |
+| `src/routes/*.routes.js` y `src/docs/swagger.js` | Todos los endpoints de negocio exigen API Key **y** JWT, y Swagger documenta los roles y las respuestas 401/403 |
+
+## Cadena de propiedad
+
+Un cliente es dueño de un recurso solo si toda la cadena lo lleva a él:
+
+```
+JWT (sub) → usuarioAuth → titular (usuarioAuthId) → cuenta (usuarioId) → bolsillo / transacción
+```
+
+El admin asocia el titular con el login mediante `PUT /api/usuarios/{id}` con `usuarioAuthId`. Responde 400 si el login no existe y 409 si no es `cliente` o ya está asociado a otro titular. Un cliente sin titular asociado recibe 403 en todo lo que dependa de la propiedad.
+
+## Matriz de permisos
+
+✅ = permitido · 🔒 = solo si el recurso es suyo · ❌ = 403
+
+| Endpoint | Admin | Auditor | Cliente |
+|---|---|---|---|
+| `POST /api/auth/usuarios` | ✅ | ❌ | ❌ |
+| `GET /api/usuarios`, `/api/cuentas`, `/api/transacciones`, `/api/bolsillos` (listados) | ✅ | ✅ | ❌ |
+| `GET /api/usuarios/{id}` y `/{id}/cuentas` | ✅ | ✅ | 🔒 |
+| `POST`, `PUT` y `DELETE /api/usuarios` | ✅ | ❌ | ❌ |
+| `GET /api/cuentas/mis-cuentas` | ❌ | ❌ | 🔒 |
+| `GET /api/cuentas/{id}` (y `/saldo`, `/transacciones`, `/bolsillos`) | ✅ | ✅ | 🔒 |
+| `POST /api/cuentas`, `PATCH /api/cuentas/{id}/estado` | ✅ | ❌ | ❌ |
+| `GET /api/transacciones/{id}` | ✅ | ✅ | 🔒 (origen o destino) |
+| `POST /api/transacciones/deposito` | ✅ | ❌ | ❌ |
+| `POST /api/transacciones/retiro` y `/transferencia` | ✅ | ❌ | 🔒 (cuenta origen; el destino puede ser cualquiera) |
+| `GET /api/bolsillos/{id}` | ✅ | ✅ | 🔒 |
+| `POST`, `PUT`, `DELETE`, `/apartar`, `/devolver` en bolsillos | ✅ | ❌ | 🔒 |
+| `PATCH /api/bolsillos/{id}/estado` | ✅ | ❌ | ❌ |
+
+## Decisiones que se apartan del laboratorio
+
+1. **Recurso inexistente:** si un cliente pide un recurso que no existe, recibe 403 igual que si fuera ajeno, para no revelar qué IDs existen. El admin sí recibe 404.
+2. **Auditor:** su acceso global solo funciona en `GET`. Es una segunda barrera por si alguna ruta de escritura lo incluyera por error.
+
+## Pruebas
+
+Preparación (en una sola sesión, sin reiniciar el servidor, porque los datos están en memoria):
+
+1. Login del admin (`admin@bolsillo.com` + `ADMIN_PASSWORD`).
+2. Registrar a Cliente A, B y C. C se queda **sin titular**.
+3. Como admin: crear un auditor con `POST /api/auth/usuarios`, y asociar titular 1 ↔ A y titular 2 ↔ B con `PUT /api/usuarios/{id}` + `usuarioAuthId`.
+4. Como admin, depositar a la cuenta 2. Como A, transferir de la cuenta 1 a la 2.
+
+| Prueba | Usuario | Petición | Esperado |
+|---|---|---|---|
+| Sin JWT | — | `GET /api/cuentas` | 401 |
+| Sin API Key | Admin | `GET /api/cuentas` | 401 |
+| JWT alterado | A | `GET /api/cuentas/1` | 401 |
+| Registro con `rol`, `activo`, `passwordHash`, `esSuperAdmin` | — | `POST /api/auth/registro` | 201, `rol: cliente` |
+| Admin crea auditor | Admin | `POST /api/auth/usuarios` | 201 |
+| Auditor crea usuario privilegiado | Auditor | `POST /api/auth/usuarios` | 403 |
+| Cliente / auditor → depósito | A / Auditor | `POST /api/transacciones/deposito` | 403 |
+| Listar todas las cuentas | Admin / Auditor / A | `GET /api/cuentas` | 200 / 200 / 403 |
+| Su propia cuenta | A | `GET /api/cuentas/1` | 200 |
+| Cuenta ajena (**IDOR**) | A | `GET /api/cuentas/2` | 403 |
+| Su transacción / transacción ajena | A | `GET /api/transacciones/{id}` | 200 / 403 |
+| Su bolsillo / bolsillo ajeno | A / B | `GET /api/bolsillos/1` | 200 / 403 |
+| Mis cuentas | A / B / C (sin titular) | `GET /api/cuentas/mis-cuentas` | 200 (solo la suya) / 200 / 403 |
+| Mis cuentas con rol privilegiado | Admin / Auditor | `GET /api/cuentas/mis-cuentas` | 403 |
+| Crear cuenta | A / Auditor | `POST /api/cuentas` | 403 |
+| Eliminar titular / editar bolsillo | A / Auditor | `DELETE /api/usuarios/1` / `PUT /api/bolsillos/1` | 403 |
+| Cambiar estado de cuenta | A | `PATCH /api/cuentas/1/estado` | 403 |
+
+> La colección de Postman de `postman/` es anterior a este laboratorio y no envía JWT. Para estas pruebas se usa Swagger UI (botón **Authorize** con `ApiKeyAuth` y `BearerAuth`).
 
 # realizar las pruebas y documentar
 SAST → Semgrep

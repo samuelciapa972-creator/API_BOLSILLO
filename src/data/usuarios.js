@@ -1,6 +1,7 @@
 const usuarios = [
   {
     id: 1,
+    usuarioAuthId: null,
     nombre: "Ana Ruiz",
     documento: "1057234891",
     email: "ana.ruiz@example.com",
@@ -10,6 +11,7 @@ const usuarios = [
 
   {
     id: 2,
+    usuarioAuthId: null,
     nombre: "Carlos Gómez",
     documento: "1098765432",
     email:

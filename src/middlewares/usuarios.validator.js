@@ -89,13 +89,37 @@ const camposBasicos = [
 
 
 // ========================================
+// Asociación con el usuario de login
+// Solo la controla el administrador (la
+// ruta está protegida por RBAC). Que sea
+// un entero no basta: el controller valida
+// que exista, sea cliente y no esté ya
+// asociado (regla de negocio).
+// ========================================
+
+const campoUsuarioAuthId =
+  body("usuarioAuthId")
+    .optional({
+      values: "null"
+    })
+    .isInt({
+      min: 1
+    })
+    .withMessage(
+      "El usuarioAuthId debe ser un entero positivo"
+    )
+    .toInt();
+
+
+// ========================================
 // POST
 // El estado nunca se recibe del cliente,
 // todo usuario nace "activo"
 // ========================================
 
 const validarCreacionUsuario = [
-  ...camposBasicos
+  ...camposBasicos,
+  campoUsuarioAuthId
 ];
 
 
@@ -107,6 +131,8 @@ const validarCreacionUsuario = [
 const validarActualizacionUsuario = [
 
   ...camposBasicos,
+
+  campoUsuarioAuthId,
 
   body("estado")
     .isIn([

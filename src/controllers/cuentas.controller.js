@@ -72,6 +72,53 @@ const obtenerCuentas = (
 
 
 // ========================================
+// GET /mis-cuentas
+// Solo cliente. La identidad sale del JWT,
+// no de un ID en la URL: no hay nada que
+// manipular.
+// ========================================
+
+const obtenerMisCuentas = (
+  req,
+  res
+) => {
+
+  const titular =
+    usuariosService
+      .obtenerUsuarioPorUsuarioAuthId(
+        req.usuario.id
+      );
+
+
+  if (
+    !titular
+  ) {
+
+    return res
+      .status(403)
+      .json({
+        mensaje:
+          "El usuario no tiene un titular de billetera asociado"
+      });
+  }
+
+
+  const cuentas =
+    cuentasService
+      .obtenerCuentasPorUsuario(
+        titular.id
+      );
+
+
+  res
+    .status(200)
+    .json(
+      cuentas
+    );
+};
+
+
+// ========================================
 // GET por ID
 // ========================================
 
@@ -464,6 +511,7 @@ const actualizarEstadoCuenta = (
 
 module.exports = {
   obtenerCuentas,
+  obtenerMisCuentas,
   obtenerCuentaPorId,
   crearCuenta,
   obtenerSaldoCuenta,
