@@ -18,6 +18,20 @@ const validar = require(
   "../middlewares/validar.middleware"
 );
 
+const autenticarJWT = require(
+  "../middlewares/auth.middleware"
+);
+
+const autorizarRoles = require(
+  "../middlewares/roles.middleware"
+);
+
+const {
+  autorizarCuentaPropia
+} = require(
+  "../middlewares/propiedad.middleware"
+);
+
 /**
  * @openapi
  * components:
@@ -118,7 +132,20 @@ const validar = require(
  *     summary:
  *       Obtener todas las cuentas
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura).
+ *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -135,7 +162,67 @@ const validar = require(
  */
 router.get(
   "/",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor"
+  ),
+
   cuentasController.obtenerCuentas
+);
+
+/**
+ * @openapi
+ * /api/cuentas/mis-cuentas:
+ *   get:
+ *
+ *     tags:
+ *       - Cuentas
+ *
+ *     summary:
+ *       Obtener las cuentas del cliente autenticado
+ *
+ *     description:
+ *       Roles — cliente. La identidad se deriva del JWT, no de un ID en la URL.
+ *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
+ *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
+ *
+ *       200:
+ *         description:
+ *           Cuentas del titular asociado al usuario autenticado
+ *
+ *         content:
+ *           application/json:
+ *
+ *             schema:
+ *               type: array
+ *
+ *               items:
+ *                 $ref: '#/components/schemas/Cuenta'
+ */
+// Debe ir antes de /:id
+router.get(
+  "/mis-cuentas",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "cliente"
+  ),
+
+  cuentasController.obtenerMisCuentas
 );
 
 /**
@@ -149,6 +236,9 @@ router.get(
  *     summary:
  *       Obtener cuenta por ID
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo sus cuentas.
+ *
  *     parameters:
  *
  *       - in: path
@@ -159,7 +249,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -182,9 +282,19 @@ router.get(
 router.get(
   "/:id",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdCuenta,
 
   validar,
+
+  autorizarCuentaPropia,
 
   cuentasController.obtenerCuentaPorId
 );
@@ -200,6 +310,9 @@ router.get(
  *     summary:
  *       Obtener el saldo total, apartado y disponible de una cuenta
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo sus cuentas.
+ *
  *     parameters:
  *
  *       - in: path
@@ -210,7 +323,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -233,9 +356,19 @@ router.get(
 router.get(
   "/:id/saldo",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdCuenta,
 
   validar,
+
+  autorizarCuentaPropia,
 
   cuentasController.obtenerSaldoCuenta
 );
@@ -251,6 +384,9 @@ router.get(
  *     summary:
  *       Obtener las transacciones de una cuenta
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo sus cuentas.
+ *
  *     parameters:
  *
  *       - in: path
@@ -261,7 +397,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -287,9 +433,19 @@ router.get(
 router.get(
   "/:id/transacciones",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdCuenta,
 
   validar,
+
+  autorizarCuentaPropia,
 
   cuentasController.obtenerTransaccionesDeCuenta
 );
@@ -305,6 +461,9 @@ router.get(
  *     summary:
  *       Obtener los bolsillos de una cuenta
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo sus cuentas.
+ *
  *     parameters:
  *
  *       - in: path
@@ -315,7 +474,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -341,9 +510,19 @@ router.get(
 router.get(
   "/:id/bolsillos",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdCuenta,
 
   validar,
+
+  autorizarCuentaPropia,
 
   cuentasController.obtenerBolsillosDeCuenta
 );
@@ -361,6 +540,7 @@ router.get(
  *
  *     description:
  *       Crea una cuenta para un usuario existente y activo. El saldo, el número de cuenta, la moneda y el estado los asigna el sistema.
+ *       Roles — administrador.
  *
  *     requestBody:
  *       required: true
@@ -371,7 +551,17 @@ router.get(
  *           schema:
  *             $ref: '#/components/schemas/CuentaEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       201:
  *         description:
@@ -387,6 +577,12 @@ router.get(
  */
 router.post(
   "/",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
 
   validarCuenta,
 
@@ -408,6 +604,7 @@ router.post(
  *
  *     description:
  *       Ciclo de vida de la cuenta. Desde activa se puede pasar a bloqueada o a cerrada.
+ *       Roles — administrador.
  *       Desde bloqueada se puede volver a activa o pasar a cerrada. Cerrada es un estado
  *       terminal y exige que el saldo total sea cero.
  *
@@ -430,7 +627,17 @@ router.post(
  *           schema:
  *             $ref: '#/components/schemas/EstadoCuentaEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -450,6 +657,12 @@ router.post(
  */
 router.patch(
   "/:id/estado",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
 
   validarIdCuenta,
 

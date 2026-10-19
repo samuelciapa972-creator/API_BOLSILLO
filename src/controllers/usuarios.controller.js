@@ -15,6 +15,12 @@ const cuentasService =
   );
 
 
+const authService =
+  require(
+    "../services/auth.service"
+  );
+
+
 // ========================================
 // Validar unicidad de documento y email
 // ========================================
@@ -62,6 +68,81 @@ const validarDuplicados = (
       status: 409,
       mensaje:
         "Ya existe un usuario con ese email"
+    };
+  }
+
+
+  return null;
+};
+
+
+// ========================================
+// Validar asociación con usuario de login
+// ¿existe?, ¿es cliente? y relación 1:1
+// (un login no puede ser dueño de dos
+// titulares)
+// ========================================
+
+const validarAsociacionLogin = (
+  usuarioAuthId,
+  idExcluir = null
+) => {
+
+  if (
+    !usuarioAuthId
+  ) {
+    return null;
+  }
+
+
+  const usuarioAuth =
+    authService
+      .obtenerUsuarioPorId(
+        usuarioAuthId
+      );
+
+
+  if (
+    !usuarioAuth
+  ) {
+
+    return {
+      status: 400,
+      mensaje:
+        "El usuario de acceso asociado no existe"
+    };
+  }
+
+
+  if (
+    usuarioAuth.rol !== "cliente"
+  ) {
+
+    return {
+      status: 409,
+      mensaje:
+        "El usuario de acceso asociado no tiene rol cliente"
+    };
+  }
+
+
+  const titularAsociado =
+    usuariosService
+      .obtenerUsuarioPorUsuarioAuthId(
+        usuarioAuthId
+      );
+
+
+  if (
+    titularAsociado &&
+    titularAsociado.id !==
+      Number(idExcluir)
+  ) {
+
+    return {
+      status: 409,
+      mensaje:
+        "El usuario de acceso ya está asociado a otro titular"
     };
   }
 
@@ -224,6 +305,27 @@ const crearUsuario = (
   }
 
 
+  const errorAsociacion =
+    validarAsociacionLogin(
+      datosPermitidos.usuarioAuthId
+    );
+
+
+  if (
+    errorAsociacion
+  ) {
+
+    return res
+      .status(
+        errorAsociacion.status
+      )
+      .json({
+        mensaje:
+          errorAsociacion.mensaje
+      });
+  }
+
+
   const usuarioCreado =
     usuariosService
       .crearUsuario(
@@ -307,6 +409,28 @@ const actualizarUsuario = (
       .json({
         mensaje:
           errorDuplicado.mensaje
+      });
+  }
+
+
+  const errorAsociacion =
+    validarAsociacionLogin(
+      datosPermitidos.usuarioAuthId,
+      id
+    );
+
+
+  if (
+    errorAsociacion
+  ) {
+
+    return res
+      .status(
+        errorAsociacion.status
+      )
+      .json({
+        mensaje:
+          errorAsociacion.mensaje
       });
   }
 
