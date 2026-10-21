@@ -2,7 +2,7 @@
 
 **Tecnología:** Supabase + PostgreSQL 16
 **Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth) 7.4 (titulares/API Keys) y 7.5 pasos 1–2 (cuentas, bolsillos y transacciones atómicas) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.5 paso 3 (cierre).
+**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth), 7.4 (titulares/API Keys) y 7.5 pasos 1–2 (cuentas, bolsillos y transacciones atómicas) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.5 paso 3 (cierre).
 
 ## 1. Objetivo
 
