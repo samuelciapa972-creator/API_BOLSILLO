@@ -412,6 +412,20 @@ Preparación (en una sola sesión, sin reiniciar el servidor, porque los datos e
 
 > La colección de Postman de `postman/` es anterior a este laboratorio y no envía JWT. Para estas pruebas se usa Swagger UI (botón **Authorize** con `ApiKeyAuth` y `BearerAuth`).
 
+# Bloque 7 — Persistencia con Supabase + PostgreSQL
+
+Migración progresiva de `src/data/` a PostgreSQL, conservando API Key, JWT, RBAC y BOLA. Guía completa, modelo y evidencias en [`database/README.md`](./database/README.md).
+
+| Sub-bloque | Alcance | Estado |
+|---|---|---|
+| 7.1 | Esquema relacional (`database/01…04`), RLS y `REVOKE` | Verificado en PostgreSQL 16 local; pendiente en Supabase |
+| 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | Verificado localmente; pendiente contra Supabase |
+| 7.3 | Usuarios de login, auth y bootstrap del administrador | Pendiente |
+| 7.4 | Titulares y API Keys | Pendiente |
+| 7.5 | Cuentas, bolsillos y transacciones atómicas | Pendiente |
+
+Requiere `DATABASE_URL` en `.env` (ver `.env.example`).
+
 # realizar las pruebas y documentar
 SAST → Semgrep
 SCA  → npm audit
