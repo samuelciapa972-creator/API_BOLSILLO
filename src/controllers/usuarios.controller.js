@@ -25,13 +25,13 @@ const authService =
 // Validar unicidad de documento y email
 // ========================================
 
-const validarDuplicados = (
+const validarDuplicados = async (
   datos,
   idExcluir = null
 ) => {
 
   const documentoExistente =
-    usuariosService
+    await usuariosService
       .buscarUsuarioPorDocumento(
         datos.documento
       );
@@ -52,7 +52,7 @@ const validarDuplicados = (
 
 
   const emailExistente =
-    usuariosService
+    await usuariosService
       .buscarUsuarioPorEmail(
         datos.email
       );
@@ -127,7 +127,7 @@ const validarAsociacionLogin = async (
 
 
   const titularAsociado =
-    usuariosService
+    await usuariosService
       .obtenerUsuarioPorUsuarioAuthId(
         usuarioAuthId
       );
@@ -155,21 +155,28 @@ const validarAsociacionLogin = async (
 // GET todos
 // ========================================
 
-const obtenerUsuarios = (
+const obtenerUsuarios = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const usuarios =
-    usuariosService
-      .obtenerUsuarios();
+  try {
+
+    const usuarios =
+      await usuariosService
+        .obtenerUsuarios();
 
 
-  res
-    .status(200)
-    .json(
-      usuarios
-    );
+    res
+      .status(200)
+      .json(
+        usuarios
+      );
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
@@ -177,41 +184,48 @@ const obtenerUsuarios = (
 // GET por ID
 // ========================================
 
-const obtenerUsuarioPorId = (
+const obtenerUsuarioPorId = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const usuario =
-    usuariosService
-      .obtenerUsuarioPorId(
-        id
+    const usuario =
+      await usuariosService
+        .obtenerUsuarioPorId(
+          id
+        );
+
+
+    if (
+      !usuario
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Usuario no encontrado"
+        });
+    }
+
+
+    res
+      .status(200)
+      .json(
+        usuario
       );
 
-
-  if (
-    !usuario
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Usuario no encontrado"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  res
-    .status(200)
-    .json(
-      usuario
-    );
 };
 
 
@@ -219,48 +233,55 @@ const obtenerUsuarioPorId = (
 // GET /:id/cuentas
 // ========================================
 
-const obtenerCuentasDeUsuario = (
+const obtenerCuentasDeUsuario = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const usuario =
-    usuariosService
-      .obtenerUsuarioPorId(
-        id
+    const usuario =
+      await usuariosService
+        .obtenerUsuarioPorId(
+          id
+        );
+
+
+    if (
+      !usuario
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Usuario no encontrado"
+        });
+    }
+
+
+    const cuentas =
+      cuentasService
+        .obtenerCuentasPorUsuario(
+          id
+        );
+
+
+    res
+      .status(200)
+      .json(
+        cuentas
       );
 
-
-  if (
-    !usuario
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Usuario no encontrado"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  const cuentas =
-    cuentasService
-      .obtenerCuentasPorUsuario(
-        id
-      );
-
-
-  res
-    .status(200)
-    .json(
-      cuentas
-    );
 };
 
 
@@ -288,7 +309,7 @@ const crearUsuario = async (
 
 
     const errorDuplicado =
-      validarDuplicados(
+      await validarDuplicados(
         datosPermitidos
       );
 
@@ -330,7 +351,7 @@ const crearUsuario = async (
 
 
     const usuarioCreado =
-      usuariosService
+      await usuariosService
         .crearUsuario(
           datosPermitidos
         );
@@ -382,7 +403,7 @@ const actualizarUsuario = async (
 
 
     const usuarioActual =
-      usuariosService
+      await usuariosService
         .obtenerUsuarioPorId(
           id
         );
@@ -402,7 +423,7 @@ const actualizarUsuario = async (
 
 
     const errorDuplicado =
-      validarDuplicados(
+      await validarDuplicados(
         datosPermitidos,
         id
       );
@@ -446,7 +467,7 @@ const actualizarUsuario = async (
 
 
     const usuarioActualizado =
-      usuariosService
+      await usuariosService
         .actualizarUsuario(
           id,
           datosPermitidos
@@ -476,73 +497,80 @@ const actualizarUsuario = async (
 // cuentas asociadas
 // ========================================
 
-const eliminarUsuario = (
+const eliminarUsuario = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const usuarioActual =
-    usuariosService
-      .obtenerUsuarioPorId(
-        id
-      );
+    const usuarioActual =
+      await usuariosService
+        .obtenerUsuarioPorId(
+          id
+        );
 
 
-  if (
-    !usuarioActual
-  ) {
+    if (
+      !usuarioActual
+    ) {
 
-    return res
-      .status(404)
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Usuario no encontrado"
+        });
+    }
+
+
+    const cuentasDelUsuario =
+      cuentasService
+        .obtenerCuentasPorUsuario(
+          id
+        );
+
+
+    if (
+      cuentasDelUsuario.length > 0
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede eliminar un usuario con cuentas asociadas"
+        });
+    }
+
+
+    const usuarioEliminado =
+      await usuariosService
+        .eliminarUsuario(
+          id
+        );
+
+
+    res
+      .status(200)
       .json({
+
         mensaje:
-          "Usuario no encontrado"
+          "Usuario eliminado correctamente",
+
+        usuario:
+          usuarioEliminado
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  const cuentasDelUsuario =
-    cuentasService
-      .obtenerCuentasPorUsuario(
-        id
-      );
-
-
-  if (
-    cuentasDelUsuario.length > 0
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede eliminar un usuario con cuentas asociadas"
-      });
-  }
-
-
-  const usuarioEliminado =
-    usuariosService
-      .eliminarUsuario(
-        id
-      );
-
-
-  res
-    .status(200)
-    .json({
-
-      mensaje:
-        "Usuario eliminado correctamente",
-
-      usuario:
-        usuarioEliminado
-    });
 };
 
 

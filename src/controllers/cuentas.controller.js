@@ -78,43 +78,50 @@ const obtenerCuentas = (
 // manipular.
 // ========================================
 
-const obtenerMisCuentas = (
+const obtenerMisCuentas = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const titular =
-    usuariosService
-      .obtenerUsuarioPorUsuarioAuthId(
-        req.usuario.id
+  try {
+
+    const titular =
+      await usuariosService
+        .obtenerUsuarioPorUsuarioAuthId(
+          req.usuario.id
+        );
+
+
+    if (
+      !titular
+    ) {
+
+      return res
+        .status(403)
+        .json({
+          mensaje:
+            "El usuario no tiene un titular de billetera asociado"
+        });
+    }
+
+
+    const cuentas =
+      cuentasService
+        .obtenerCuentasPorUsuario(
+          titular.id
+        );
+
+
+    res
+      .status(200)
+      .json(
+        cuentas
       );
 
-
-  if (
-    !titular
-  ) {
-
-    return res
-      .status(403)
-      .json({
-        mensaje:
-          "El usuario no tiene un titular de billetera asociado"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  const cuentas =
-    cuentasService
-      .obtenerCuentasPorUsuario(
-        titular.id
-      );
-
-
-  res
-    .status(200)
-    .json(
-      cuentas
-    );
 };
 
 
@@ -166,72 +173,79 @@ const obtenerCuentaPorId = (
 // estar activo
 // ========================================
 
-const crearCuenta = (
+const crearCuenta = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
+  try {
 
-
-  const usuario =
-    usuariosService
-      .obtenerUsuarioPorId(
-        datosPermitidos.usuarioId
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !usuario
-  ) {
+    const usuario =
+      await usuariosService
+        .obtenerUsuarioPorId(
+          datosPermitidos.usuarioId
+        );
 
-    return res
-      .status(400)
+
+    if (
+      !usuario
+    ) {
+
+      return res
+        .status(400)
+        .json({
+          mensaje:
+            "El usuario indicado no existe"
+        });
+    }
+
+
+    if (
+      usuario.estado !== "activo"
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede crear una cuenta para un usuario inactivo"
+        });
+    }
+
+
+    const cuentaCreada =
+      cuentasService
+        .crearCuenta(
+          datosPermitidos
+        );
+
+
+    res
+      .status(201)
       .json({
+
         mensaje:
-          "El usuario indicado no existe"
+          "Cuenta creada correctamente",
+
+        cuenta:
+          cuentaCreada
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  if (
-    usuario.estado !== "activo"
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede crear una cuenta para un usuario inactivo"
-      });
-  }
-
-
-  const cuentaCreada =
-    cuentasService
-      .crearCuenta(
-        datosPermitidos
-      );
-
-
-  res
-    .status(201)
-    .json({
-
-      mensaje:
-        "Cuenta creada correctamente",
-
-      cuenta:
-        cuentaCreada
-    });
 };
 
 

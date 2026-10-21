@@ -2,7 +2,7 @@
 
 **Tecnología:** Supabase + PostgreSQL 16
 **Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema), 7.2 (conexión) y 7.3 (login/auth) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.4–7.5.
+**Estado:** 7.1 (esquema), 7.2 (conexión) 7.3 (login/auth) y 7.4 (titulares/API Keys) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.5.
 
 ## 1. Objetivo
 
@@ -225,9 +225,55 @@ Local = PostgreSQL 16 con TLS en Docker. Supabase = proyecto real, solo pruebas 
 | B05 | `password_hash` con formato bcrypt `$2b$12$` | Sí | ✅ Local |
 | B06 | Logs sin contraseñas ni hashes | 0 coincidencias | ✅ Local · ✅ Supabase |
 
-## 11. Próximos pasos
+## 11. Bloque 7.4 — Titulares y API Keys
 
-- **7.4** Titulares (`usuarios`) y API Keys (`api_keys`).
-- **7.5** Cuentas, bolsillos y transacciones, con movimientos de dinero atómicos (`ejecutarTransaccion` + `SELECT … FOR UPDATE`) y `propiedad.middleware.js` asíncrono.
+| Archivo | Cambio |
+|---|---|
+| `src/services/usuarios.service.js` | CRUD sobre `public.usuarios` con SQL parametrizado; columnas con alias camelCase (`usuario_auth_id AS "usuarioAuthId"`). Email sin distinguir mayúsculas |
+| `src/controllers/usuarios.controller.js` | Todos los handlers `async` con `try/catch` + `next(error)`; `validarDuplicados()` es `async` |
+| `src/controllers/cuentas.controller.js` | `obtenerMisCuentas` y `crearCuenta` esperan al titular (las cuentas siguen en memoria hasta 7.5) |
+| `src/middlewares/propiedad.middleware.js` | Fábrica `async`: espera al titular del JWT y acepta comprobaciones de propiedad síncronas o asíncronas (preparado para 7.5) |
+| `src/middlewares/usuarios.validator.js` | Email máximo 150 caracteres |
+| `src/services/apiKeys.service.js` | Busca el hash SHA-256 en `public.api_keys`; `sincronizarApiKeys()` al arrancar |
+| `src/data/apiKeys.js` | Ya no es fuente de datos: es la **semilla** que se sincroniza con la tabla |
+| `src/middlewares/apiKey.middleware.js` | `async`; un error de BD pasa al manejador global (500 genérico) |
+| `src/app.js` | Arranque: sincronizar API Keys → administrador inicial → abrir el puerto |
+
+**API Keys: qué manda la tabla y qué manda `.env`:**
+
+- `.env` manda el **hash**: para rotar una key, cámbiala en `.env` y reinicia. La anterior deja de funcionar.
+- La tabla manda **`activa`**: `UPDATE public.api_keys SET activa = false WHERE cliente = '…'` deshabilita una key al instante, sin reiniciar y sin tocar el código. Al reiniciar no se sobrescribe.
+- La tabla nunca guarda la key en claro (`CHECK hash ~ '^[0-9a-f]{64}$'`).
+
+**PUT de titular:** si no se envía `usuarioAuthId`, se conserva el vínculo actual. La relación 1:1 con el login la protege `UNIQUE(usuario_auth_id)`, además de la validación del controller.
+
+**Transitorio hasta 7.5:** cuentas, bolsillos y transacciones siguen en memoria. Los IDs de cuenta de la semilla (1 y 2) coinciden con los titulares de la semilla SQL, así que `mis-cuentas` y BOLA sobre cuentas funcionan con los datos de prueba.
+
+### Pruebas 7.4
+
+| ID | Caso | Esperado | Resultado |
+|---|---|---|---|
+| K01–K02 | Sin `X-API-Key` / key inválida | 401 | ✅ Local · ✅ Supabase (K01) |
+| K03 | Key Postman activa | 200 | ✅ Local · ✅ Supabase |
+| K04 | Key Móvil inactiva | 403 | ✅ Local · ✅ Supabase |
+| K05 | La tabla no contiene keys en claro | 0 | ✅ Local · ✅ Supabase (3 hashes de 64) |
+| K06 | Activar una key en la tabla sin reiniciar | 200 | ✅ Local |
+| U01–U04 | Listar (2) / por ID / inexistente / ID inválido | 200 / 200 / 404 / 400 | ✅ Local · ✅ Supabase (U01, U03) |
+| U05 | POST con `estado` e `id` en el body | 201, ignorados (mass assignment) | ✅ Local |
+| U06–U07 | Documento duplicado / email duplicado con mayúsculas | 409 | ✅ Local |
+| U08–U09 | PUT completo / PUT con email de otro titular | 200 / 409 | ✅ Local |
+| U10–U12 | Eliminar con cuentas / sin cuentas / ya eliminado | 409 / 200 / 404 | ✅ Local |
+| U13 | 3 POST simultáneos con el mismo documento | 1 fila (201, 409, 409) | ✅ Local |
+| O01–O04 | Vincular titular↔login, 1:1, PUT sin `usuarioAuthId` conserva el vínculo | 200 / 409 / 200 / igual | ✅ Local |
+| O05–O08 | Cliente: su titular / ajeno / inexistente / listado | 200 / 403 / 403 / 403 | ✅ Local |
+| O09–O11 | `mis-cuentas` con titular / sin titular / cuenta ajena | 200 / 403 / 403 | ✅ Local |
+| R01–R02 | Reinicio: 3 keys, `activa` no se sobrescribe | Sí | ✅ Local · ✅ Supabase (R01) |
+| R03–R04 | Key rotada en `.env`: la vieja / la nueva | 401 / 200 | ✅ Local |
+| R05–R07 | Reinicio: vínculo, BOLA y eliminación persisten | Sí | ✅ Local |
+| R08 | Logs sin keys, contraseñas ni hashes | 0 | ✅ Local · ✅ Supabase |
+
+## 12. Próximos pasos
+
+- **7.5** Cuentas, bolsillos y transacciones, con movimientos de dinero atómicos (`ejecutarTransaccion` + `SELECT … FOR UPDATE`) y comprobaciones de propiedad asíncronas.
 
 No borrar el resto de `src/data/` hasta terminar la migración y sus pruebas.

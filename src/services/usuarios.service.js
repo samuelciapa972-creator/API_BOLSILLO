@@ -1,169 +1,183 @@
-const usuarios =
-  require(
-    "../data/usuarios"
-  );
-
 const {
-  generarSiguienteId
+  consultar
 } = require(
-  "../utils/comunes"
+  "../config/database"
 );
 
-const obtenerUsuarios = () => {
-  return usuarios;
+// ========================================
+// Columnas devueltas (snake_case en SQL,
+// camelCase en la API)
+// ========================================
+const COLUMNAS_USUARIO = `
+  id,
+  usuario_auth_id AS "usuarioAuthId",
+  nombre,
+  documento,
+  email,
+  telefono,
+  estado
+`;
+
+const obtenerUsuarios = async () => {
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_USUARIO}
+       FROM public.usuarios
+       ORDER BY id`
+    );
+
+  return resultado.rows;
 };
 
-const obtenerUsuarioPorId = (
+const obtenerUsuarioPorId = async (
   id
 ) => {
-  return usuarios.find(
-    usuario =>
-      usuario.id === Number(id)
-  );
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_USUARIO}
+       FROM public.usuarios
+       WHERE id = $1`,
+      [id]
+    );
+
+  return resultado.rows[0] ?? null;
 };
 
 // ========================================
 // Obtener titular por usuario de login
-// Relaciona el JWT (sub = usuarioAuth.id)
+// Relaciona el JWT (sub = usuarios_auth.id)
 // con el titular de la billetera
 // ========================================
-const obtenerUsuarioPorUsuarioAuthId = (
+const obtenerUsuarioPorUsuarioAuthId = async (
   usuarioAuthId
 ) => {
-  return usuarios.find(
-    usuario =>
-      usuario.usuarioAuthId ===
-      Number(usuarioAuthId)
-  );
-};
-
-const buscarUsuarioPorDocumento = (
-  documento
-) => {
-  return usuarios.find(
-    usuario =>
-      usuario.documento ===
-      documento
-  );
-};
-
-const buscarUsuarioPorEmail = (
-  email
-) => {
-  return usuarios.find(
-    usuario =>
-      usuario.email ===
-      email
-  );
-};
-
-const crearUsuario = (
-  datos
-) => {
-  const nuevoId =
-    generarSiguienteId(
-      usuarios
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_USUARIO}
+       FROM public.usuarios
+       WHERE usuario_auth_id = $1`,
+      [usuarioAuthId]
     );
 
-  const usuario = {
-    id:
-      nuevoId,
-
-    usuarioAuthId:
-      datos.usuarioAuthId ?? null,
-
-    nombre:
-      datos.nombre,
-
-    documento:
-      datos.documento,
-
-    email:
-      datos.email,
-
-    telefono:
-      datos.telefono,
-
-    estado: "activo"
-  };
-
-  usuarios.push(
-    usuario
-  );
-
-  return usuario;
+  return resultado.rows[0] ?? null;
 };
 
-const actualizarUsuario = (
+const buscarUsuarioPorDocumento = async (
+  documento
+) => {
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_USUARIO}
+       FROM public.usuarios
+       WHERE documento = $1`,
+      [documento]
+    );
+
+  return resultado.rows[0] ?? null;
+};
+
+// Sin distinguir mayúsculas, igual que el
+// índice único uq_usuarios_email_ci
+const buscarUsuarioPorEmail = async (
+  email
+) => {
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_USUARIO}
+       FROM public.usuarios
+       WHERE LOWER(email) = LOWER($1)`,
+      [email]
+    );
+
+  return resultado.rows[0] ?? null;
+};
+
+// ========================================
+// Crear
+// El estado lo fija la base de datos
+// (DEFAULT 'activo'), nunca el cliente
+// ========================================
+const crearUsuario = async (
+  datos
+) => {
+  const resultado =
+    await consultar(
+      `INSERT INTO public.usuarios
+         (usuario_auth_id, nombre, documento, email, telefono)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING ${COLUMNAS_USUARIO}`,
+      [
+        datos.usuarioAuthId ?? null,
+        datos.nombre,
+        datos.documento,
+        datos.email,
+        datos.telefono
+      ]
+    );
+
+  return resultado.rows[0];
+};
+
+// ========================================
+// Actualizar (PUT)
+// Si no se envía usuarioAuthId, se conserva
+// la asociación actual con el login
+// ========================================
+const actualizarUsuario = async (
   id,
   datos
 ) => {
-  const indice =
-    usuarios.findIndex(
-      usuario =>
-        usuario.id ===
-        Number(id)
+  const cambiarAsociacion =
+    datos.usuarioAuthId !== undefined;
+
+  const resultado =
+    await consultar(
+      `UPDATE public.usuarios
+       SET nombre = $2,
+           documento = $3,
+           email = $4,
+           telefono = $5,
+           estado = $6,
+           usuario_auth_id = CASE
+             WHEN $7::BOOLEAN THEN $8::BIGINT
+             ELSE usuario_auth_id
+           END
+       WHERE id = $1
+       RETURNING ${COLUMNAS_USUARIO}`,
+      [
+        id,
+        datos.nombre,
+        datos.documento,
+        datos.email,
+        datos.telefono,
+        datos.estado,
+        cambiarAsociacion,
+        cambiarAsociacion
+          ? datos.usuarioAuthId
+          : null
+      ]
     );
 
-  if (
-    indice === -1
-  ) {
-    return null;
-  }
-
-  usuarios[indice] = {
-    id:
-      usuarios[indice].id,
-
-    // Si no se envía, se conserva la
-    // asociación actual con el login
-    usuarioAuthId:
-      datos.usuarioAuthId !== undefined
-        ? datos.usuarioAuthId
-        : usuarios[indice].usuarioAuthId,
-
-    nombre:
-      datos.nombre,
-
-    documento:
-      datos.documento,
-
-    email:
-      datos.email,
-
-    telefono:
-      datos.telefono,
-
-    estado:
-      datos.estado
-  };
-
-  return usuarios[indice];
+  return resultado.rows[0] ?? null;
 };
 
-const eliminarUsuario = (
+// ========================================
+// Eliminar
+// Si tiene cuentas, la FK (ON DELETE
+// RESTRICT) lo impide: error 23503
+// ========================================
+const eliminarUsuario = async (
   id
 ) => {
-  const indice =
-    usuarios.findIndex(
-      usuario =>
-        usuario.id ===
-        Number(id)
+  const resultado =
+    await consultar(
+      `DELETE FROM public.usuarios
+       WHERE id = $1
+       RETURNING ${COLUMNAS_USUARIO}`,
+      [id]
     );
 
-  if (
-    indice === -1
-  ) {
-    return null;
-  }
-
-  const eliminado =
-    usuarios.splice(
-      indice,
-      1
-    );
-
-  return eliminado[0];
+  return resultado.rows[0] ?? null;
 };
 
 module.exports = {
