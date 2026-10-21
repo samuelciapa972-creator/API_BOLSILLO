@@ -27,6 +27,13 @@ const bolsillosService =
   );
 
 
+const {
+  redondearMoneda
+} = require(
+  "../utils/comunes"
+);
+
+
 // ========================================
 // Ciclo de vida de estados
 // activa <-> bloqueada, ambas -> cerrada
@@ -309,8 +316,10 @@ const obtenerSaldoCuenta = async (
 
 
     const saldoDisponible =
-      cuenta.saldoTotal -
-      saldoApartado;
+      redondearMoneda(
+        cuenta.saldoTotal -
+        saldoApartado
+      );
 
 
     res
@@ -375,7 +384,7 @@ const obtenerTransaccionesDeCuenta = async (
 
 
     const transacciones =
-      transaccionesService
+      await transaccionesService
         .obtenerTransaccionesPorCuenta(
           id
         );
@@ -431,7 +440,7 @@ const obtenerBolsillosDeCuenta = async (
 
 
     const bolsillos =
-      bolsillosService
+      await bolsillosService
         .obtenerBolsillosPorCuenta(
           id
         );

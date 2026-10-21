@@ -276,7 +276,7 @@ const autorizarAccesoBolsillo =
     async (req, titular) => {
 
       const bolsillo =
-        bolsillosService
+        await bolsillosService
           .obtenerBolsilloPorId(
             req.params.id
           );
@@ -304,7 +304,7 @@ const autorizarAccesoTransaccion =
     async (req, titular) => {
 
       const transaccion =
-        transaccionesService
+        await transaccionesService
           .obtenerTransaccionPorId(
             req.params.id
           );

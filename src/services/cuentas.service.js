@@ -1,12 +1,13 @@
-const bolsillos =
-  require(
-    "../data/bolsillos"
-  );
-
 const {
   consultar
 } = require(
   "../config/database"
+);
+
+const {
+  redondearMoneda
+} = require(
+  "../utils/comunes"
 );
 
 // ========================================
@@ -80,38 +81,77 @@ const obtenerCuentasPorUsuario = async (
 };
 
 // ========================================
+// Bloquear cuentas (SELECT ... FOR UPDATE)
+// Solo dentro de ejecutarTransaccion. Hasta
+// el COMMIT, ninguna otra operación puede
+// modificar estas cuentas ni sus bolsillos
+// (todas bloquean la cuenta primero), así
+// que el saldo disponible validado es el
+// que se debita.
+//
+// Se bloquean en orden de id para que dos
+// transferencias cruzadas (A→B y B→A) no
+// se bloqueen mutuamente (deadlock).
+// Devuelve las cuentas en el orden pedido;
+// null si alguna no existe.
+// ========================================
+const bloquearCuentas = async (
+  ids,
+  bd
+) => {
+  const resultado =
+    await bd.query(
+      `SELECT ${COLUMNAS_CUENTA}
+       FROM public.cuentas
+       WHERE id = ANY($1::BIGINT[])
+       ORDER BY id
+       FOR UPDATE`,
+      [ids]
+    );
+
+  return ids.map(
+    (id) =>
+      resultado.rows.find(
+        (cuenta) => cuenta.id === Number(id)
+      ) ?? null
+  );
+};
+
+// ========================================
 // Función central del dominio
 // Ningún débito debe escribirse sin pasar
 // por aquí
-//
-// Transitorio (7.5 paso 1): los bolsillos
-// siguen en memoria, así que el saldo
-// apartado se calcula con ellos. En el
-// paso 2 pasa a SQL.
+// Saldo apartado = suma de los bolsillos
+// ACTIVOS de la cuenta (en SQL, NUMERIC)
 // ========================================
 
 const calcularSaldoApartado = async (
-  cuentaId
+  cuentaId,
+  bd = null
 ) => {
-  return bolsillos
-    .filter(
-      bolsillo =>
-        bolsillo.cuentaId === Number(cuentaId) &&
-        bolsillo.estado === "activo"
-    )
-    .reduce(
-      (total, bolsillo) =>
-        total + bolsillo.saldo,
-      0
+  const resultado =
+    await ejecutar(
+      bd,
+      `SELECT COALESCE(SUM(saldo), 0)::NUMERIC(14, 2) AS "saldoApartado"
+       FROM public.bolsillos
+       WHERE cuenta_id = $1
+         AND estado = 'activo'`,
+      [cuentaId]
     );
+
+  return resultado.rows[0].saldoApartado;
 };
 
+// Dentro de una transacción, pasar `bd`
+// DESPUÉS de bloquearCuentas()
 const calcularSaldoDisponible = async (
-  cuentaId
+  cuentaId,
+  bd = null
 ) => {
   const cuenta =
     await obtenerCuentaPorId(
-      cuentaId
+      cuentaId,
+      bd
     );
 
   if (
@@ -122,11 +162,14 @@ const calcularSaldoDisponible = async (
 
   const saldoApartado =
     await calcularSaldoApartado(
-      cuentaId
+      cuentaId,
+      bd
     );
 
-  return cuenta.saldoTotal -
-    saldoApartado;
+  return redondearMoneda(
+    cuenta.saldoTotal -
+    saldoApartado
+  );
 };
 
 // ========================================
@@ -213,6 +256,7 @@ module.exports = {
   obtenerCuentas,
   obtenerCuentaPorId,
   obtenerCuentasPorUsuario,
+  bloquearCuentas,
   calcularSaldoApartado,
   calcularSaldoDisponible,
   crearCuenta,

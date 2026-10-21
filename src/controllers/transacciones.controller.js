@@ -9,31 +9,32 @@ const transaccionesService =
   );
 
 
-const cuentasService =
-  require(
-    "../services/cuentas.service"
-  );
-
-
 // ========================================
 // GET todas
 // ========================================
 
-const obtenerTransacciones = (
+const obtenerTransacciones = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const transacciones =
-    transaccionesService
-      .obtenerTransacciones();
+  try {
+
+    const transacciones =
+      await transaccionesService
+        .obtenerTransacciones();
 
 
-  res
-    .status(200)
-    .json(
-      transacciones
-    );
+    res
+      .status(200)
+      .json(
+        transacciones
+      );
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
@@ -41,46 +42,58 @@ const obtenerTransacciones = (
 // GET por ID
 // ========================================
 
-const obtenerTransaccionPorId = (
+const obtenerTransaccionPorId = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const transaccion =
-    transaccionesService
-      .obtenerTransaccionPorId(
-        id
+    const transaccion =
+      await transaccionesService
+        .obtenerTransaccionPorId(
+          id
+        );
+
+
+    if (
+      !transaccion
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Transacción no encontrada"
+        });
+    }
+
+
+    res
+      .status(200)
+      .json(
+        transaccion
       );
 
-
-  if (
-    !transaccion
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Transacción no encontrada"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  res
-    .status(200)
-    .json(
-      transaccion
-    );
 };
 
 
 // ========================================
 // POST /deposito
+// Las reglas de negocio (cuenta existe y
+// está activa) se validan dentro de la
+// transacción SQL del service: un error
+// de negocio llega como ErrorNegocio al
+// middleware global.
 // ========================================
 
 const crearDeposito = async (
@@ -102,61 +115,11 @@ const crearDeposito = async (
       );
 
 
-    const cuentaDestino =
-      await cuentasService
-        .obtenerCuentaPorId(
-          datosPermitidos.cuentaDestinoId
-        );
-
-
-    if (
-      !cuentaDestino
-    ) {
-
-      return res
-        .status(400)
-        .json({
-          mensaje:
-            "La cuenta destino no existe"
-        });
-    }
-
-
-    if (
-      cuentaDestino.estado !== "activa"
-    ) {
-
-      return res
-        .status(409)
-        .json({
-          mensaje:
-            "La cuenta destino no está activa"
-        });
-    }
-
-
-    await cuentasService
-      .registrarDeposito(
-        cuentaDestino.id,
-        datosPermitidos.monto
-      );
-
-
     const transaccionCreada =
-      transaccionesService
-        .crearTransaccion({
-
-          tipo: "deposito",
-
-          cuentaDestinoId:
-            cuentaDestino.id,
-
-          monto:
-            datosPermitidos.monto,
-
-          descripcion:
-            datosPermitidos.descripcion
-        });
+      await transaccionesService
+        .realizarDeposito(
+          datosPermitidos
+        );
 
 
     res
@@ -179,7 +142,8 @@ const crearDeposito = async (
 // ========================================
 // POST /retiro
 // Regla 3: se valida contra el disponible,
-// nunca contra el total
+// nunca contra el total (en el service,
+// con la cuenta bloqueada)
 // ========================================
 
 const crearRetiro = async (
@@ -201,82 +165,11 @@ const crearRetiro = async (
       );
 
 
-    const cuentaOrigen =
-      await cuentasService
-        .obtenerCuentaPorId(
-          datosPermitidos.cuentaOrigenId
-        );
-
-
-    if (
-      !cuentaOrigen
-    ) {
-
-      return res
-        .status(400)
-        .json({
-          mensaje:
-            "La cuenta origen no existe"
-        });
-    }
-
-
-    if (
-      cuentaOrigen.estado !== "activa"
-    ) {
-
-      return res
-        .status(409)
-        .json({
-          mensaje:
-            "La cuenta origen no está activa"
-        });
-    }
-
-
-    const saldoDisponible =
-      await cuentasService
-        .calcularSaldoDisponible(
-          cuentaOrigen.id
-        );
-
-
-    if (
-      saldoDisponible <
-        datosPermitidos.monto
-    ) {
-
-      return res
-        .status(409)
-        .json({
-          mensaje:
-            "El saldo disponible de la cuenta no alcanza para el retiro"
-        });
-    }
-
-
-    await cuentasService
-      .registrarRetiro(
-        cuentaOrigen.id,
-        datosPermitidos.monto
-      );
-
-
     const transaccionCreada =
-      transaccionesService
-        .crearTransaccion({
-
-          tipo: "retiro",
-
-          cuentaOrigenId:
-            cuentaOrigen.id,
-
-          monto:
-            datosPermitidos.monto,
-
-          descripcion:
-            datosPermitidos.descripcion
-        });
+      await transaccionesService
+        .realizarRetiro(
+          datosPermitidos
+        );
 
 
     res
@@ -299,7 +192,8 @@ const crearRetiro = async (
 // ========================================
 // POST /transferencia
 // Regla 4: ambas cuentas deben existir,
-// ser distintas y estar activas
+// ser distintas y estar activas (en el
+// service, con ambas cuentas bloqueadas)
 // ========================================
 
 const crearTransferencia = async (
@@ -321,126 +215,11 @@ const crearTransferencia = async (
       );
 
 
-    const cuentaOrigen =
-      await cuentasService
-        .obtenerCuentaPorId(
-          datosPermitidos.cuentaOrigenId
-        );
-
-
-    if (
-      !cuentaOrigen
-    ) {
-
-      return res
-        .status(400)
-        .json({
-          mensaje:
-            "La cuenta origen no existe"
-        });
-    }
-
-
-    const cuentaDestino =
-      await cuentasService
-        .obtenerCuentaPorId(
-          datosPermitidos.cuentaDestinoId
-        );
-
-
-    if (
-      !cuentaDestino
-    ) {
-
-      return res
-        .status(400)
-        .json({
-          mensaje:
-            "La cuenta destino no existe"
-        });
-    }
-
-
-    if (
-      datosPermitidos.cuentaOrigenId ===
-        datosPermitidos.cuentaDestinoId
-    ) {
-
-      return res
-        .status(409)
-        .json({
-          mensaje:
-            "La cuenta origen y la cuenta destino deben ser distintas"
-        });
-    }
-
-
-    if (
-      cuentaOrigen.estado !== "activa" ||
-      cuentaDestino.estado !== "activa"
-    ) {
-
-      return res
-        .status(409)
-        .json({
-          mensaje:
-            "Ambas cuentas deben estar activas"
-        });
-    }
-
-
-    const saldoDisponible =
-      await cuentasService
-        .calcularSaldoDisponible(
-          cuentaOrigen.id
-        );
-
-
-    if (
-      saldoDisponible <
-        datosPermitidos.monto
-    ) {
-
-      return res
-        .status(409)
-        .json({
-          mensaje:
-            "El saldo disponible de la cuenta origen no alcanza para la transferencia"
-        });
-    }
-
-
-    await cuentasService
-      .registrarRetiro(
-        cuentaOrigen.id,
-        datosPermitidos.monto
-      );
-
-    await cuentasService
-      .registrarDeposito(
-        cuentaDestino.id,
-        datosPermitidos.monto
-      );
-
-
     const transaccionCreada =
-      transaccionesService
-        .crearTransaccion({
-
-          tipo: "transferencia",
-
-          cuentaOrigenId:
-            cuentaOrigen.id,
-
-          cuentaDestinoId:
-            cuentaDestino.id,
-
-          monto:
-            datosPermitidos.monto,
-
-          descripcion:
-            datosPermitidos.descripcion
-        });
+      await transaccionesService
+        .realizarTransferencia(
+          datosPermitidos
+        );
 
 
     res

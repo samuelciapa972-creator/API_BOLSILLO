@@ -1,3 +1,9 @@
+const {
+  ErrorNegocio
+} = require(
+  "../utils/errores"
+);
+
 const rutaNoEncontrada = (
   req,
   res
@@ -54,6 +60,12 @@ const ERRORES_POSTGRES = {
   "22001": {
     status: 400,
     mensaje: "Un dato supera la longitud permitida"
+  },
+
+  // numeric_value_out_of_range
+  "22003": {
+    status: 400,
+    mensaje: "Un valor numérico está fuera del rango permitido"
   }
 };
 
@@ -63,6 +75,16 @@ const manejarError = (
   res,
   next
 ) => {
+  // Regla de negocio: respuesta esperada,
+  // no es un fallo del servidor (sin log)
+  if (error instanceof ErrorNegocio) {
+    return res
+      .status(error.status)
+      .json({
+        mensaje: error.message
+      });
+  }
+
   const errorPostgres =
     ERRORES_POSTGRES[error.code];
 

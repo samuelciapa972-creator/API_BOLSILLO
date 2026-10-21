@@ -2,7 +2,7 @@
 
 **Tecnología:** Supabase + PostgreSQL 16
 **Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth) y 7.4 (titulares/API Keys) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.5.
+**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth) 7.4 (titulares/API Keys) y 7.5 pasos 1–2 (cuentas, bolsillos y transacciones atómicas) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.5 paso 3 (cierre).
 
 ## 1. Objetivo
 
@@ -290,12 +290,9 @@ Local = PostgreSQL 16 con TLS en Docker. Supabase = proyecto real, solo pruebas 
 | La fábrica evalúa la promesa como booleano (`if (!perteneceAlTitular(...))`) | **Hueco BOLA:** una promesa siempre es verdadera, así que cualquier cliente pasa (Eve vio una transferencia ajena: 200) | B10 |
 | `esCuentaDelTitular(origen) \|\| esCuentaDelTitular(destino)` | `\|\|` devuelve la primera promesa: solo se revisa el origen, y el dueño del destino recibe un 403 indebido | B08 |
 
-### ⚠️ Estado transitorio (hasta el paso 2)
+### Estado transitorio del paso 1 (resuelto en el paso 2)
 
-- **Transacciones y bolsillos siguen en memoria.** Los saldos de las cuentas ya persisten, pero el registro de transacciones se pierde al reiniciar: durante este paso la regla 12 no se cumple tras un reinicio.
-- **La transferencia todavía no es atómica:** son dos `UPDATE` separados.
-- El saldo apartado se calcula con los bolsillos en memoria.
-- **No hacer movimientos de dinero en Supabase hasta terminar el paso 2.** En Supabase solo se hicieron pruebas de lectura.
+Durante el paso 1, transacciones y bolsillos siguieron en memoria y la transferencia no era atómica. Ver §13.
 
 ### Pruebas 7.5 — paso 1
 
@@ -318,7 +315,75 @@ Local = PostgreSQL 16 con TLS en Docker. Supabase = proyecto real, solo pruebas 
 | I01–I02 | Eliminar titular con cuentas; respuesta sin detalle SQL | 409 | ✅ Local |
 | R01–R04 | Reinicio: saldos, estado cerrada, logs sin secretos | Persisten | ✅ Local |
 
-## 13. Próximos pasos
+## 13. Bloque 7.5 — Paso 2: Bolsillos y transacciones atómicas
 
-- **7.5 paso 2:** bolsillos y transacciones en PostgreSQL. Cada movimiento de dinero en una sola transacción SQL (`ejecutarTransaccion` + `SELECT … FOR UPDATE`), saldo apartado en SQL y pruebas de concurrencia.
-- **7.5 paso 3:** eliminar `src/data/`, Swagger, Postman, matriz final y `npm audit`.
+Todo movimiento de dinero es **una sola transacción SQL**:
+
+```text
+BEGIN
+  SELECT … FROM cuentas WHERE id = ANY($1) ORDER BY id FOR UPDATE   ← bloquea la(s) cuenta(s)
+  [SELECT … FROM bolsillos WHERE id = $1 FOR UPDATE]                ← apartar / devolver
+  validar sobre las filas bloqueadas (existe, activa, disponible…)  ← ErrorNegocio → ROLLBACK
+  UPDATE saldo(s)
+  INSERT INTO transacciones                                          ← libro contable (regla 12)
+COMMIT
+```
+
+| Archivo | Cambio |
+|---|---|
+| `src/services/transacciones.service.js` | SQL + `realizarDeposito`, `realizarRetiro` y `realizarTransferencia` atómicos; `crearTransaccion()` siempre dentro de la transacción que movió el dinero |
+| `src/services/bolsillos.service.js` | SQL + `crearBolsillo` (límite de 10 con la cuenta bloqueada), `apartarEnBolsillo` y `devolverDeBolsillo` atómicos |
+| `src/services/cuentas.service.js` | `bloquearCuentas()` (`FOR UPDATE` en orden de id); saldo apartado calculado en SQL |
+| `src/utils/errores.js` | `ErrorNegocio(status, mensaje)`: una regla incumplida dentro de la transacción provoca el ROLLBACK y la misma respuesta HTTP de antes |
+| `src/middlewares/errores.middleware.js` | Responde `ErrorNegocio` sin registrar el stack; añade `22003` (valor fuera de rango) → 400 |
+| `src/controllers/transacciones.controller.js`, `bolsillos.controller.js` | Los movimientos delegan en el service; PUT, DELETE y cambio de estado mantienen su validación |
+| `src/middlewares/transacciones.validator.js`, `bolsillos.validator.js` | `monto` y `meta` con **máximo 2 decimales**; `meta` hasta 999.999.999.999,99 |
+
+**Decisiones:**
+
+- **Orden de bloqueo único: cuenta → bolsillo**, y las cuentas en orden de id. Así, dos transferencias cruzadas (A→B y B→A) no se bloquean entre sí.
+- **Las validaciones se hacen sobre filas ya bloqueadas.** Leer, validar y después escribir sin bloqueo permite que dos peticiones validen el mismo saldo disponible.
+- **Máximo 2 decimales:** `NUMERIC(14,2)` redondearía `10.555` a `10.56`, y se movería un monto distinto del validado.
+- **Mismos códigos y mensajes de antes:** el contrato HTTP no cambia.
+
+### Pruebas 7.5 — paso 2
+
+| ID | Caso | Esperado | Resultado |
+|---|---|---|---|
+| K01–K02 | Listar / bolsillo inexistente | 200 / 404 | ✅ Local · ✅ Supabase (K01) |
+| K03 | Crear enviando `saldo` y `estado` en el body | 201, saldo 0, activo | ✅ Local |
+| K04–K05 | Nombre duplicado con mayúsculas / mismo nombre en otra cuenta | 409 / 201 | ✅ Local |
+| K06–K07 | Meta con 3 decimales / cuenta inexistente | 400 / 400 | ✅ Local |
+| K08–K09 | PUT sin meta la conserva / PUT con nombre existente | igual / 409 | ✅ Local |
+| A01–A02 | Apartar 15.000: el total no cambia y el disponible baja | 201, 100.000 / 5.000 | ✅ Local |
+| A03–A04 | Apartar o retirar más del disponible | 409 | ✅ Local |
+| A05–A07 | Devolver más de lo que hay / devolver 5.000,25 | 409 / 201 (disponible 10.000,25) | ✅ Local |
+| A08–A09 | Bolsillo inexistente / monto con 3 decimales | 404 / 400 | ✅ Local |
+| E01–E06b | Eliminar o archivar con saldo, eliminar con transacciones, archivar vacío, apartar en archivado, reactivar, cliente cambia el estado | 409 / 409 / 409 / 200 / 409 / 409 / 403 | ✅ Local |
+| E07–E08 | Eliminar bolsillo nuevo / ver bolsillo ajeno | 200 / 403 | ✅ Local |
+| L01–L04 | Libro por cuenta, persistencia, RBAC, sin PUT ni DELETE | 200 / filas / 403 / 404 | ✅ Local · ✅ Supabase (L01) |
+| T01–T04 | **Atomicidad:** se fuerza que el INSERT de la transacción falle después de mover saldos | 409, saldos y bolsillo intactos, 0 transacciones nuevas | ✅ Local |
+| T05, X11 | Conciliación: saldo de cada cuenta y bolsillo = suma de sus transacciones; ningún disponible negativo | 0 descuadres | ✅ Local · ✅ Supabase |
+| X01–X02 | 10 retiros simultáneos de 5.000 con 20.000 disponibles | 4 × 201, 6 × 409, disponible ≥ 0 | ✅ Local |
+| X03 | 10 apartados simultáneos de 4.000 con 30.000 disponibles | 7 × 201, 3 × 409 | ✅ Local |
+| X04–X05 | 5 retiros + 5 apartados de 2.000 mezclados con 12.000 disponibles | 6 éxitos, disponible exacto 0,00 | ✅ Local |
+| X06–X08 | 20 transferencias cruzadas A↔B simultáneas | 20 × 201, dinero conservado, 0 deadlocks | ✅ Local |
+| X09–X10 | 5 bolsillos simultáneos con 8 existentes | 2 × 201, 3 × 409, total 10 | ✅ Local |
+| R01–R03 | Reinicio: transacciones y estados persisten; logs sin secretos | Sí | ✅ Local |
+
+**Mutante (sin `FOR UPDATE`):** la misma batería de concurrencia falla en 8 pruebas, lo que demuestra que el bloqueo es lo que protege el saldo:
+
+| Prueba | Con bloqueo | Sin bloqueo |
+|---|---|---|
+| X01: retiros aprobados con 20.000 disponibles | 4 | **8: se gastó el dinero apartado** |
+| X05: disponible final | 0,00 | **−4.000** |
+| X06: transferencias cruzadas | 20 × 201 | **12 × 500 por deadlock** |
+| X10: bolsillos en la cuenta (máximo 10) | 10 | **13** |
+
+La conciliación (X11) cuadra incluso en el mutante: la atomicidad sigue funcionando, pero la regla del saldo disponible no. El `CHECK saldo_total >= 0` no lo detecta porque el total sigue siendo positivo. Por eso hace falta `FOR UPDATE`.
+
+**En Supabase solo se hicieron lecturas:** las transacciones son inmutables y cualquier movimiento de prueba quedaría para siempre en el libro.
+
+## 14. Próximos pasos
+
+- **7.5 paso 3:** eliminar los `src/data/` que ya no se usan (`usuarios`, `cuentas`, `bolsillos`, `transacciones`) y `generarSiguienteId`; actualizar Swagger y Postman; matriz final; `npm audit`.
