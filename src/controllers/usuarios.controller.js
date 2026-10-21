@@ -267,7 +267,7 @@ const obtenerCuentasDeUsuario = async (
 
 
     const cuentas =
-      cuentasService
+      await cuentasService
         .obtenerCuentasPorUsuario(
           id
         );
@@ -531,7 +531,7 @@ const eliminarUsuario = async (
 
 
     const cuentasDelUsuario =
-      cuentasService
+      await cuentasService
         .obtenerCuentasPorUsuario(
           id
         );

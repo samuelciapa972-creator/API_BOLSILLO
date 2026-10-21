@@ -423,7 +423,7 @@ Migración progresiva de `src/data/` a PostgreSQL, conservando API Key, JWT, RBA
 | 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | Verificado contra Supabase (Session pooler) |
 | 7.3 | Usuarios de login, auth y bootstrap del administrador | Verificado en local y en Supabase |
 | 7.4 | Titulares y API Keys | Verificado en local y en Supabase |
-| 7.5 | Cuentas, bolsillos y transacciones atómicas | Pendiente |
+| 7.5 | Cuentas, bolsillos y transacciones atómicas | Paso 1 (cuentas) verificado; pasos 2–3 pendientes |
 
 Requiere `DATABASE_URL` en `.env` (ver `.env.example`).
 

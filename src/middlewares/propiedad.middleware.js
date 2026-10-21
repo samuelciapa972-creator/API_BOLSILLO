@@ -60,15 +60,27 @@ const tieneAccesoGlobal = (req) => {
 
 // ========================================
 // ¿La cuenta pertenece al titular?
+// Es async: quien la use DEBE esperarla.
+// Una promesa sin await es "truthy" y
+// dejaría pasar a cualquiera (BOLA).
 // ========================================
 
-const esCuentaDelTitular = (
+const esCuentaDelTitular = async (
   cuentaId,
   titular
 ) => {
 
+  // Sin cuenta (p. ej. el origen de un
+  // depósito) no hay nada que comparar
+  if (
+    cuentaId === null ||
+    cuentaId === undefined
+  ) {
+    return false;
+  }
+
   const cuenta =
-    cuentasService
+    await cuentasService
       .obtenerCuentaPorId(
         cuentaId
       );
@@ -261,7 +273,7 @@ const autorizarCuentaDeBolsilloNuevo =
 
 const autorizarAccesoBolsillo =
   autorizarPropiedad(
-    (req, titular) => {
+    async (req, titular) => {
 
       const bolsillo =
         bolsillosService
@@ -269,12 +281,13 @@ const autorizarAccesoBolsillo =
             req.params.id
           );
 
-      return (
-        !!bolsillo &&
-        esCuentaDelTitular(
-          bolsillo.cuentaId,
-          titular
-        )
+      if (!bolsillo) {
+        return false;
+      }
+
+      return await esCuentaDelTitular(
+        bolsillo.cuentaId,
+        titular
       );
     }
   );
@@ -288,7 +301,7 @@ const autorizarAccesoBolsillo =
 
 const autorizarAccesoTransaccion =
   autorizarPropiedad(
-    (req, titular) => {
+    async (req, titular) => {
 
       const transaccion =
         transaccionesService
@@ -300,15 +313,22 @@ const autorizarAccesoTransaccion =
         return false;
       }
 
-      return (
-        esCuentaDelTitular(
+      // Cada comprobación con await: un
+      // "||" entre promesas siempre daría
+      // true
+      const esOrigenPropio =
+        await esCuentaDelTitular(
           transaccion.cuentaOrigenId,
           titular
-        ) ||
-        esCuentaDelTitular(
-          transaccion.cuentaDestinoId,
-          titular
-        )
+        );
+
+      if (esOrigenPropio) {
+        return true;
+      }
+
+      return await esCuentaDelTitular(
+        transaccion.cuentaDestinoId,
+        titular
       );
     }
   );

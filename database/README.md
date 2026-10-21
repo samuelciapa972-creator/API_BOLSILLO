@@ -272,8 +272,53 @@ Local = PostgreSQL 16 con TLS en Docker. Supabase = proyecto real, solo pruebas 
 | R05–R07 | Reinicio: vínculo, BOLA y eliminación persisten | Sí | ✅ Local |
 | R08 | Logs sin keys, contraseñas ni hashes | 0 | ✅ Local · ✅ Supabase |
 
-## 12. Próximos pasos
+## 12. Bloque 7.5 — Paso 1: Cuentas
 
-- **7.5** Cuentas, bolsillos y transacciones, con movimientos de dinero atómicos (`ejecutarTransaccion` + `SELECT … FOR UPDATE`) y comprobaciones de propiedad asíncronas.
+| Archivo | Cambio |
+|---|---|
+| `src/services/cuentas.service.js` | CRUD sobre `public.cuentas`. Depósito y retiro con `saldo_total ± $2` en SQL (NUMERIC). Parámetro opcional `bd` para ejecutar dentro de `ejecutarTransaccion` (paso 2) |
+| `src/controllers/cuentas.controller.js` | Todos los handlers `async` |
+| `src/controllers/transacciones.controller.js` | Depósito, retiro y transferencia esperan a `cuentasService` |
+| `src/controllers/bolsillos.controller.js` | Crear, apartar y devolver esperan la cuenta y el saldo disponible |
+| `src/controllers/usuarios.controller.js` | `GET /:id/cuentas` y `DELETE` esperan las cuentas de la BD |
+| `src/middlewares/propiedad.middleware.js` | `esCuentaDelTitular()` es `async`; las comprobaciones compuestas (bolsillo, transacción) esperan cada llamada por separado |
 
-No borrar el resto de `src/data/` hasta terminar la migración y sus pruebas.
+**Lección del paso (verificada con mutantes):** una comprobación de propiedad `async` sin `await` falla de dos maneras:
+
+| Error | Efecto | Prueba que lo detecta |
+|---|---|---|
+| La fábrica evalúa la promesa como booleano (`if (!perteneceAlTitular(...))`) | **Hueco BOLA:** una promesa siempre es verdadera, así que cualquier cliente pasa (Eve vio una transferencia ajena: 200) | B10 |
+| `esCuentaDelTitular(origen) \|\| esCuentaDelTitular(destino)` | `\|\|` devuelve la primera promesa: solo se revisa el origen, y el dueño del destino recibe un 403 indebido | B08 |
+
+### ⚠️ Estado transitorio (hasta el paso 2)
+
+- **Transacciones y bolsillos siguen en memoria.** Los saldos de las cuentas ya persisten, pero el registro de transacciones se pierde al reiniciar: durante este paso la regla 12 no se cumple tras un reinicio.
+- **La transferencia todavía no es atómica:** son dos `UPDATE` separados.
+- El saldo apartado se calcula con los bolsillos en memoria.
+- **No hacer movimientos de dinero en Supabase hasta terminar el paso 2.** En Supabase solo se hicieron pruebas de lectura.
+
+### Pruebas 7.5 — paso 1
+
+| ID | Caso | Esperado | Resultado |
+|---|---|---|---|
+| C01–C04 | Listar (montos e ids como `number`) / por ID / inexistente / ID inválido | 200 / 200 / 404 / 400 | ✅ Local · ✅ Supabase (C01, C03) |
+| C05 | Crear con `saldoTotal`, `numeroCuenta` y `estado` en el body | 201: número generado por la BD, saldo 0, activa | ✅ Local |
+| C06–C07 | Titular inexistente / inactivo | 400 / 409 | ✅ Local |
+| C08 | Saldo de Ana | 100.000 / 80.000 / 20.000 | ✅ Local · ✅ Supabase |
+| M01–M02 | **Caso estrella:** retirar 50.000 con 20.000 disponibles | 409, saldo intacto en BD | ✅ Local |
+| M03–M06 | Depósito 50.000 y retiro 10.000,50 | 201, saldo exacto `139999.50` en BD | ✅ Local |
+| M07–M08 | Transferencia 5.000 | 201, ambos saldos actualizados en BD | ✅ Local |
+| M09–M11 | Misma cuenta / destino inexistente / 5.000.000 | 409 / 400 / 400 | ✅ Local |
+| S01–S08 | Bloquear, operar bloqueada, desbloquear, cerrar con o sin saldo, reabrir, estado inválido | 200 / 409 / 409 / 200 / 409 / 200 / 409 / 400 | ✅ Local |
+| B01–B07 | Cliente: sus cuentas sí; ajenas, inexistentes, débito ajeno, crear y cambiar estado no | 200 / 403 | ✅ Local |
+| B08–B09 | Ver transferencia como dueño del destino / del origen | 200 | ✅ Local |
+| B10–B12 | Tercer cliente: transferencia, depósito y bolsillo ajenos | 403 | ✅ Local |
+| B13–B14 | Bolsillo propio / crear bolsillo en cuenta ajena | 200 / 403 | ✅ Local |
+| B15 | Auditor: lectura sí, depósito no | 200 / 403 | ✅ Local |
+| I01–I02 | Eliminar titular con cuentas; respuesta sin detalle SQL | 409 | ✅ Local |
+| R01–R04 | Reinicio: saldos, estado cerrada, logs sin secretos | Persisten | ✅ Local |
+
+## 13. Próximos pasos
+
+- **7.5 paso 2:** bolsillos y transacciones en PostgreSQL. Cada movimiento de dinero en una sola transacción SQL (`ejecutarTransaccion` + `SELECT … FOR UPDATE`), saldo apartado en SQL y pruebas de concurrencia.
+- **7.5 paso 3:** eliminar `src/data/`, Swagger, Postman, matriz final y `npm audit`.
