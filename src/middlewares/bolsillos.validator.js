@@ -46,11 +46,20 @@ const camposNombreMeta = [
 
   body("meta")
     .optional()
-    .isFloat({
-      min: 0.01
+    .isDecimal({
+      decimal_digits: "0,2"
     })
     .withMessage(
-      "La meta debe ser un número decimal mayor que 0"
+      "La meta debe ser un número con máximo 2 decimales"
+    )
+    .bail()
+    // Máximo que cabe en NUMERIC(14,2)
+    .isFloat({
+      min: 0.01,
+      max: 999999999999.99
+    })
+    .withMessage(
+      "La meta debe ser un número decimal mayor que 0 y no superar 999.999.999.999,99"
     )
     .toFloat()
 ];
@@ -94,6 +103,16 @@ const validarActualizacionBolsillo = [
 const validarMontoBolsillo = [
 
   body("monto")
+    // NUMERIC(14,2): con más decimales la base
+    // de datos redondearía y se movería un
+    // monto distinto del validado
+    .isDecimal({
+      decimal_digits: "0,2"
+    })
+    .withMessage(
+      "El monto debe ser un número con máximo 2 decimales"
+    )
+    .bail()
     .isFloat({
       min: 0.01,
       max: 2000000

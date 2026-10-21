@@ -20,6 +20,21 @@ const validar = require(
   "../middlewares/validar.middleware"
 );
 
+const autenticarJWT = require(
+  "../middlewares/auth.middleware"
+);
+
+const autorizarRoles = require(
+  "../middlewares/roles.middleware"
+);
+
+const {
+  autorizarCuentaDeBolsilloNuevo,
+  autorizarAccesoBolsillo
+} = require(
+  "../middlewares/propiedad.middleware"
+);
+
 /**
  * @openapi
  * components:
@@ -85,6 +100,9 @@ const validar = require(
  *           type: number
  *           format: float
  *           minimum: 0.01
+ *           maximum: 999999999999.99
+ *           multipleOf: 0.01
+ *           description: Opcional. Máximo 2 decimales
  *           example: 800000.00
  *
  *     BolsilloActualizacionEntrada:
@@ -105,6 +123,9 @@ const validar = require(
  *           type: number
  *           format: float
  *           minimum: 0.01
+ *           maximum: 999999999999.99
+ *           multipleOf: 0.01
+ *           description: Opcional. Máximo 2 decimales
  *           example: 900000.00
  *
  *     EstadoBolsilloEntrada:
@@ -133,6 +154,8 @@ const validar = require(
  *           format: float
  *           minimum: 0.01
  *           maximum: 2000000
+ *           multipleOf: 0.01
+ *           description: Máximo 2 decimales
  *           example: 20000.00
  *
  *         descripcion:
@@ -152,7 +175,20 @@ const validar = require(
  *     summary:
  *       Obtener todos los bolsillos
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura).
+ *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -169,6 +205,14 @@ const validar = require(
  */
 router.get(
   "/",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor"
+  ),
+
   bolsillosController.obtenerBolsillos
 );
 
@@ -183,6 +227,9 @@ router.get(
  *     summary:
  *       Obtener bolsillo por ID
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo bolsillos de sus cuentas.
+ *
  *     parameters:
  *
  *       - in: path
@@ -193,7 +240,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -216,9 +273,19 @@ router.get(
 router.get(
   "/:id",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdBolsillo,
 
   validar,
+
+  autorizarAccesoBolsillo,
 
   bolsillosController.obtenerBolsilloPorId
 );
@@ -236,6 +303,7 @@ router.get(
  *
  *     description:
  *       El saldo, la fecha de creación y el estado los asigna el sistema. Una cuenta admite máximo 10 bolsillos, y el nombre debe ser único dentro de la cuenta.
+ *       Roles — administrador, cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo en una cuenta propia.
  *
  *     requestBody:
  *       required: true
@@ -246,7 +314,17 @@ router.get(
  *           schema:
  *             $ref: '#/components/schemas/BolsilloEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       201:
  *         description:
@@ -263,9 +341,18 @@ router.get(
 router.post(
   "/",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "cliente"
+  ),
+
   validarBolsillo,
 
   validar,
+
+  autorizarCuentaDeBolsilloNuevo,
 
   bolsillosController.crearBolsillo
 );
@@ -283,6 +370,7 @@ router.post(
  *
  *     description:
  *       La cuenta a la que pertenece un bolsillo no es editable.
+ *       Roles — administrador, cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo bolsillos de sus cuentas.
  *
  *     parameters:
  *
@@ -303,7 +391,17 @@ router.post(
  *           schema:
  *             $ref: '#/components/schemas/BolsilloActualizacionEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -324,11 +422,20 @@ router.post(
 router.put(
   "/:id",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "cliente"
+  ),
+
   validarIdBolsillo,
 
   validarActualizacionBolsillo,
 
   validar,
+
+  autorizarAccesoBolsillo,
 
   bolsillosController.actualizarBolsillo
 );
@@ -346,6 +453,7 @@ router.put(
  *
  *     description:
  *       No se puede eliminar un bolsillo con saldo, primero debe devolverse el dinero a la cuenta.
+ *       Roles — administrador, cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo bolsillos de sus cuentas.
  *
  *     parameters:
  *
@@ -357,7 +465,17 @@ router.put(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -378,9 +496,18 @@ router.put(
 router.delete(
   "/:id",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "cliente"
+  ),
+
   validarIdBolsillo,
 
   validar,
+
+  autorizarAccesoBolsillo,
 
   bolsillosController.eliminarBolsillo
 );
@@ -398,6 +525,7 @@ router.delete(
  *
  *     description:
  *       No cambia el saldo total de la cuenta, solo reduce el saldo disponible. Cada llamada crea un movimiento nuevo, por eso es POST y no PATCH.
+ *       Roles — administrador, cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo bolsillos de sus cuentas.
  *
  *     parameters:
  *
@@ -418,7 +546,17 @@ router.delete(
  *           schema:
  *             $ref: '#/components/schemas/MontoBolsilloEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       201:
  *         description:
@@ -439,11 +577,20 @@ router.delete(
 router.post(
   "/:id/apartar",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "cliente"
+  ),
+
   validarIdBolsillo,
 
   validarMontoBolsillo,
 
   validar,
+
+  autorizarAccesoBolsillo,
 
   bolsillosController.apartarEnBolsillo
 );
@@ -461,6 +608,7 @@ router.post(
  *
  *     description:
  *       No se puede devolver más de lo que el bolsillo contiene.
+ *       Roles — administrador, cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo bolsillos de sus cuentas.
  *
  *     parameters:
  *
@@ -481,7 +629,17 @@ router.post(
  *           schema:
  *             $ref: '#/components/schemas/MontoBolsilloEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       201:
  *         description:
@@ -502,11 +660,20 @@ router.post(
 router.post(
   "/:id/devolver",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "cliente"
+  ),
+
   validarIdBolsillo,
 
   validarMontoBolsillo,
 
   validar,
+
+  autorizarAccesoBolsillo,
 
   bolsillosController.devolverDeBolsillo
 );
@@ -524,6 +691,7 @@ router.post(
  *
  *     description:
  *       El estado archivado es terminal y exige que el bolsillo tenga saldo en 0.
+ *       Roles — administrador.
  *
  *     parameters:
  *
@@ -544,7 +712,17 @@ router.post(
  *           schema:
  *             $ref: '#/components/schemas/EstadoBolsilloEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -564,6 +742,12 @@ router.post(
  */
 router.patch(
   "/:id/estado",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
 
   validarIdBolsillo,
 

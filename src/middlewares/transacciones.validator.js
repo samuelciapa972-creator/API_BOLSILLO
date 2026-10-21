@@ -26,6 +26,16 @@ const validarIdTransaccion = [
 const camposMontoDescripcion = [
 
   body("monto")
+    // NUMERIC(14,2): con más decimales la base
+    // de datos redondearía y se movería un
+    // monto distinto del validado
+    .isDecimal({
+      decimal_digits: "0,2"
+    })
+    .withMessage(
+      "El monto debe ser un número con máximo 2 decimales"
+    )
+    .bail()
     .isFloat({
       min: 0.01,
       max: 2000000

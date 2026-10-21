@@ -4,14 +4,16 @@ const router = express.Router();
 
 const {
   registrar,
-  login
+  login,
+  crearUsuarioAdministrativo
 } = require(
   "../controllers/auth.controller"
 );
 
 const {
   validarRegistro,
-  validarLogin
+  validarLogin,
+  validarCreacionUsuarioAdministrativo
 } = require(
   "../middlewares/auth.validator"
 );
@@ -22,6 +24,10 @@ const validar = require(
 
 const autenticarJWT = require(
   "../middlewares/auth.middleware"
+);
+
+const autorizarRoles = require(
+  "../middlewares/roles.middleware"
 );
 
 /**
@@ -214,6 +220,108 @@ router.get(
       clienteApi: req.clienteApi
     });
   }
+);
+
+/**
+ * @openapi
+ * components:
+ *   schemas:
+ *
+ *     UsuarioAdministrativoEntrada:
+ *       type: object
+ *
+ *       required:
+ *         - nombre
+ *         - email
+ *         - password
+ *         - rol
+ *
+ *       properties:
+ *
+ *         nombre:
+ *           type: string
+ *           example: Auditor Bolsillo
+ *
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: auditor@bolsillo.com
+ *
+ *         password:
+ *           type: string
+ *           format: password
+ *           example: ClaveAuditor2026!
+ *
+ *         rol:
+ *           type: string
+ *           enum: [auditor, administrador]
+ *           example: auditor
+ */
+
+/**
+ * @openapi
+ * /api/auth/usuarios:
+ *   post:
+ *
+ *     tags:
+ *       - Autenticación
+ *
+ *     summary:
+ *       Crear usuario privilegiado (auditor o administrador)
+ *
+ *     description:
+ *       Solo un administrador autenticado puede crear usuarios con rol
+ *       auditor o administrador. Los clientes se crean con /api/auth/registro.
+ *       Campos como activo, passwordHash o id se ignoran.
+ *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
+ *     requestBody:
+ *       required: true
+ *
+ *       content:
+ *         application/json:
+ *
+ *           schema:
+ *             $ref: '#/components/schemas/UsuarioAdministrativoEntrada'
+ *
+ *     responses:
+ *
+ *       201:
+ *         description:
+ *           Usuario creado correctamente
+ *
+ *       400:
+ *         description:
+ *           Datos inválidos (incluye un rol no permitido)
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
+ *
+ *       409:
+ *         description:
+ *           Correo electrónico ya registrado
+ */
+router.post(
+  "/usuarios",
+
+  // Primero ¿puede hacerlo?, luego los datos
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
+
+  validarCreacionUsuarioAdministrativo,
+
+  validar,
+
+  crearUsuarioAdministrativo
 );
 
 module.exports = router;

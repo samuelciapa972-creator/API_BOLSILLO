@@ -27,6 +27,13 @@ const bolsillosService =
   );
 
 
+const {
+  redondearMoneda
+} = require(
+  "../utils/comunes"
+);
+
+
 // ========================================
 // Ciclo de vida de estados
 // activa <-> bloqueada, ambas -> cerrada
@@ -53,21 +60,82 @@ const transicionesPermitidas = {
 // GET todas
 // ========================================
 
-const obtenerCuentas = (
+const obtenerCuentas = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const cuentas =
-    cuentasService
-      .obtenerCuentas();
+  try {
+
+    const cuentas =
+      await cuentasService
+        .obtenerCuentas();
 
 
-  res
-    .status(200)
-    .json(
-      cuentas
-    );
+    res
+      .status(200)
+      .json(
+        cuentas
+      );
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+// ========================================
+// GET /mis-cuentas
+// Solo cliente. La identidad sale del JWT,
+// no de un ID en la URL: no hay nada que
+// manipular.
+// ========================================
+
+const obtenerMisCuentas = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    const titular =
+      await usuariosService
+        .obtenerUsuarioPorUsuarioAuthId(
+          req.usuario.id
+        );
+
+
+    if (
+      !titular
+    ) {
+
+      return res
+        .status(403)
+        .json({
+          mensaje:
+            "El usuario no tiene un titular de billetera asociado"
+        });
+    }
+
+
+    const cuentas =
+      await cuentasService
+        .obtenerCuentasPorUsuario(
+          titular.id
+        );
+
+
+    res
+      .status(200)
+      .json(
+        cuentas
+      );
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
@@ -75,41 +143,48 @@ const obtenerCuentas = (
 // GET por ID
 // ========================================
 
-const obtenerCuentaPorId = (
+const obtenerCuentaPorId = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        id
+    const cuenta =
+      await cuentasService
+        .obtenerCuentaPorId(
+          id
+        );
+
+
+    if (
+      !cuenta
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Cuenta no encontrada"
+        });
+    }
+
+
+    res
+      .status(200)
+      .json(
+        cuenta
       );
 
-
-  if (
-    !cuenta
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Cuenta no encontrada"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  res
-    .status(200)
-    .json(
-      cuenta
-    );
 };
 
 
@@ -119,72 +194,79 @@ const obtenerCuentaPorId = (
 // estar activo
 // ========================================
 
-const crearCuenta = (
+const crearCuenta = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
+  try {
 
-
-  const usuario =
-    usuariosService
-      .obtenerUsuarioPorId(
-        datosPermitidos.usuarioId
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !usuario
-  ) {
+    const usuario =
+      await usuariosService
+        .obtenerUsuarioPorId(
+          datosPermitidos.usuarioId
+        );
 
-    return res
-      .status(400)
+
+    if (
+      !usuario
+    ) {
+
+      return res
+        .status(400)
+        .json({
+          mensaje:
+            "El usuario indicado no existe"
+        });
+    }
+
+
+    if (
+      usuario.estado !== "activo"
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede crear una cuenta para un usuario inactivo"
+        });
+    }
+
+
+    const cuentaCreada =
+      await cuentasService
+        .crearCuenta(
+          datosPermitidos
+        );
+
+
+    res
+      .status(201)
       .json({
+
         mensaje:
-          "El usuario indicado no existe"
+          "Cuenta creada correctamente",
+
+        cuenta:
+          cuentaCreada
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  if (
-    usuario.estado !== "activo"
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede crear una cuenta para un usuario inactivo"
-      });
-  }
-
-
-  const cuentaCreada =
-    cuentasService
-      .crearCuenta(
-        datosPermitidos
-      );
-
-
-  res
-    .status(201)
-    .json({
-
-      mensaje:
-        "Cuenta creada correctamente",
-
-      cuenta:
-        cuentaCreada
-    });
 };
 
 
@@ -193,65 +275,74 @@ const crearCuenta = (
 // Devuelve total, apartado y disponible
 // ========================================
 
-const obtenerSaldoCuenta = (
+const obtenerSaldoCuenta = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        id
+    const cuenta =
+      await cuentasService
+        .obtenerCuentaPorId(
+          id
+        );
+
+
+    if (
+      !cuenta
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Cuenta no encontrada"
+        });
+    }
+
+
+    const saldoApartado =
+      await cuentasService
+        .calcularSaldoApartado(
+          id
+        );
+
+
+    const saldoDisponible =
+      redondearMoneda(
+        cuenta.saldoTotal -
+        saldoApartado
       );
 
 
-  if (
-    !cuenta
-  ) {
-
-    return res
-      .status(404)
+    res
+      .status(200)
       .json({
-        mensaje:
-          "Cuenta no encontrada"
+
+        cuentaId:
+          cuenta.id,
+
+        saldoTotal:
+          cuenta.saldoTotal,
+
+        saldoApartado,
+
+        saldoDisponible,
+
+        moneda:
+          cuenta.moneda
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  const saldoApartado =
-    cuentasService
-      .calcularSaldoApartado(
-        id
-      );
-
-
-  const saldoDisponible =
-    cuenta.saldoTotal -
-    saldoApartado;
-
-
-  res
-    .status(200)
-    .json({
-
-      cuentaId:
-        cuenta.id,
-
-      saldoTotal:
-        cuenta.saldoTotal,
-
-      saldoApartado,
-
-      saldoDisponible,
-
-      moneda:
-        cuenta.moneda
-    });
 };
 
 
@@ -259,48 +350,55 @@ const obtenerSaldoCuenta = (
 // GET /:id/transacciones
 // ========================================
 
-const obtenerTransaccionesDeCuenta = (
+const obtenerTransaccionesDeCuenta = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        id
+    const cuenta =
+      await cuentasService
+        .obtenerCuentaPorId(
+          id
+        );
+
+
+    if (
+      !cuenta
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Cuenta no encontrada"
+        });
+    }
+
+
+    const transacciones =
+      await transaccionesService
+        .obtenerTransaccionesPorCuenta(
+          id
+        );
+
+
+    res
+      .status(200)
+      .json(
+        transacciones
       );
 
-
-  if (
-    !cuenta
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Cuenta no encontrada"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  const transacciones =
-    transaccionesService
-      .obtenerTransaccionesPorCuenta(
-        id
-      );
-
-
-  res
-    .status(200)
-    .json(
-      transacciones
-    );
 };
 
 
@@ -308,48 +406,55 @@ const obtenerTransaccionesDeCuenta = (
 // GET /:id/bolsillos
 // ========================================
 
-const obtenerBolsillosDeCuenta = (
+const obtenerBolsillosDeCuenta = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        id
+    const cuenta =
+      await cuentasService
+        .obtenerCuentaPorId(
+          id
+        );
+
+
+    if (
+      !cuenta
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Cuenta no encontrada"
+        });
+    }
+
+
+    const bolsillos =
+      await bolsillosService
+        .obtenerBolsillosPorCuenta(
+          id
+        );
+
+
+    res
+      .status(200)
+      .json(
+        bolsillos
       );
 
-
-  if (
-    !cuenta
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Cuenta no encontrada"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  const bolsillos =
-    bolsillosService
-      .obtenerBolsillosPorCuenta(
-        id
-      );
-
-
-  res
-    .status(200)
-    .json(
-      bolsillos
-    );
 };
 
 
@@ -359,111 +464,119 @@ const obtenerBolsillosDeCuenta = (
 // con saldo total mayor que 0
 // ========================================
 
-const actualizarEstadoCuenta = (
+const actualizarEstadoCuenta = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
-
-
-  const cuentaActual =
-    cuentasService
-      .obtenerCuentaPorId(
-        id
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !cuentaActual
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Cuenta no encontrada"
-      });
-  }
+    const cuentaActual =
+      await cuentasService
+        .obtenerCuentaPorId(
+          id
+        );
 
 
-  const nuevoEstado =
-    datosPermitidos.estado;
+    if (
+      !cuentaActual
+    ) {
 
-  const estadoActual =
-    cuentaActual.estado;
-
-  const permitidos =
-    transicionesPermitidas[
-      estadoActual
-    ];
-
-
-  if (
-    !permitidos.includes(
-      nuevoEstado
-    )
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          `No se permite cambiar una cuenta de ${estadoActual} a ${nuevoEstado}`
-      });
-  }
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Cuenta no encontrada"
+        });
+    }
 
 
-  if (
-    nuevoEstado === "cerrada" &&
-    cuentaActual.saldoTotal > 0
-  ) {
+    const nuevoEstado =
+      datosPermitidos.estado;
 
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede cerrar una cuenta con saldo total mayor que cero"
-      });
-  }
+    const estadoActual =
+      cuentaActual.estado;
+
+    const permitidos =
+      transicionesPermitidas[
+        estadoActual
+      ];
 
 
-  const cuentaActualizada =
-    cuentasService
-      .actualizarEstadoCuenta(
-        id,
+    if (
+      !permitidos.includes(
         nuevoEstado
-      );
+      )
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            `No se permite cambiar una cuenta de ${estadoActual} a ${nuevoEstado}`
+        });
+    }
 
 
-  res
-    .status(200)
-    .json({
+    if (
+      nuevoEstado === "cerrada" &&
+      cuentaActual.saldoTotal > 0
+    ) {
 
-      mensaje:
-        "Estado de la cuenta actualizado correctamente",
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede cerrar una cuenta con saldo total mayor que cero"
+        });
+    }
 
-      cuenta:
-        cuentaActualizada
-    });
+
+    const cuentaActualizada =
+      await cuentasService
+        .actualizarEstadoCuenta(
+          id,
+          nuevoEstado
+        );
+
+
+    res
+      .status(200)
+      .json({
+
+        mensaje:
+          "Estado de la cuenta actualizado correctamente",
+
+        cuenta:
+          cuentaActualizada
+      });
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
 module.exports = {
   obtenerCuentas,
+  obtenerMisCuentas,
   obtenerCuentaPorId,
   crearCuenta,
   obtenerSaldoCuenta,

@@ -1,40 +1,119 @@
-const cuentas =
-  require(
-    "../data/cuentas"
-  );
-
-const bolsillos =
-  require(
-    "../data/bolsillos"
-  );
+const {
+  consultar
+} = require(
+  "../config/database"
+);
 
 const {
-  generarSiguienteId,
   redondearMoneda
 } = require(
   "../utils/comunes"
 );
 
-const obtenerCuentas = () => {
-  return cuentas;
-};
+// ========================================
+// Columnas devueltas (camelCase)
+// ========================================
+const COLUMNAS_CUENTA = `
+  id,
+  usuario_id AS "usuarioId",
+  numero_cuenta AS "numeroCuenta",
+  saldo_total AS "saldoTotal",
+  moneda,
+  estado
+`;
 
-const obtenerCuentaPorId = (
-  id
+// ========================================
+// Ejecutor de consultas
+// Sin `bd`, usa el pool. Con `bd` (el
+// cliente de ejecutarTransaccion), la
+// consulta forma parte de esa transacción.
+// ========================================
+const ejecutar = (
+  bd,
+  sql,
+  parametros
 ) => {
-  return cuentas.find(
-    cuenta =>
-      cuenta.id === Number(id)
-  );
+  return bd
+    ? bd.query(sql, parametros)
+    : consultar(sql, parametros);
 };
 
-const obtenerCuentasPorUsuario = (
+const obtenerCuentas = async () => {
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_CUENTA}
+       FROM public.cuentas
+       ORDER BY id`
+    );
+
+  return resultado.rows;
+};
+
+const obtenerCuentaPorId = async (
+  id,
+  bd = null
+) => {
+  const resultado =
+    await ejecutar(
+      bd,
+      `SELECT ${COLUMNAS_CUENTA}
+       FROM public.cuentas
+       WHERE id = $1`,
+      [id]
+    );
+
+  return resultado.rows[0] ?? null;
+};
+
+const obtenerCuentasPorUsuario = async (
   usuarioId
 ) => {
-  return cuentas.filter(
-    cuenta =>
-      cuenta.usuarioId ===
-      Number(usuarioId)
+  const resultado =
+    await consultar(
+      `SELECT ${COLUMNAS_CUENTA}
+       FROM public.cuentas
+       WHERE usuario_id = $1
+       ORDER BY id`,
+      [usuarioId]
+    );
+
+  return resultado.rows;
+};
+
+// ========================================
+// Bloquear cuentas (SELECT ... FOR UPDATE)
+// Solo dentro de ejecutarTransaccion. Hasta
+// el COMMIT, ninguna otra operación puede
+// modificar estas cuentas ni sus bolsillos
+// (todas bloquean la cuenta primero), así
+// que el saldo disponible validado es el
+// que se debita.
+//
+// Se bloquean en orden de id para que dos
+// transferencias cruzadas (A→B y B→A) no
+// se bloqueen mutuamente (deadlock).
+// Devuelve las cuentas en el orden pedido;
+// null si alguna no existe.
+// ========================================
+const bloquearCuentas = async (
+  ids,
+  bd
+) => {
+  const resultado =
+    await bd.query(
+      `SELECT ${COLUMNAS_CUENTA}
+       FROM public.cuentas
+       WHERE id = ANY($1::BIGINT[])
+       ORDER BY id
+       FOR UPDATE`,
+      [ids]
+    );
+
+  return ids.map(
+    (id) =>
+      resultado.rows.find(
+        (cuenta) => cuenta.id === Number(id)
+      ) ?? null
   );
 };
 
@@ -42,30 +121,37 @@ const obtenerCuentasPorUsuario = (
 // Función central del dominio
 // Ningún débito debe escribirse sin pasar
 // por aquí
+// Saldo apartado = suma de los bolsillos
+// ACTIVOS de la cuenta (en SQL, NUMERIC)
 // ========================================
 
-const calcularSaldoApartado = (
-  cuentaId
+const calcularSaldoApartado = async (
+  cuentaId,
+  bd = null
 ) => {
-  return bolsillos
-    .filter(
-      bolsillo =>
-        bolsillo.cuentaId === Number(cuentaId) &&
-        bolsillo.estado === "activo"
-    )
-    .reduce(
-      (total, bolsillo) =>
-        total + bolsillo.saldo,
-      0
+  const resultado =
+    await ejecutar(
+      bd,
+      `SELECT COALESCE(SUM(saldo), 0)::NUMERIC(14, 2) AS "saldoApartado"
+       FROM public.bolsillos
+       WHERE cuenta_id = $1
+         AND estado = 'activo'`,
+      [cuentaId]
     );
+
+  return resultado.rows[0].saldoApartado;
 };
 
-const calcularSaldoDisponible = (
-  cuentaId
+// Dentro de una transacción, pasar `bd`
+// DESPUÉS de bloquearCuentas()
+const calcularSaldoDisponible = async (
+  cuentaId,
+  bd = null
 ) => {
   const cuenta =
-    obtenerCuentaPorId(
-      cuentaId
+    await obtenerCuentaPorId(
+      cuentaId,
+      bd
     );
 
   if (
@@ -75,118 +161,102 @@ const calcularSaldoDisponible = (
   }
 
   const saldoApartado =
-    calcularSaldoApartado(
-      cuentaId
+    await calcularSaldoApartado(
+      cuentaId,
+      bd
     );
 
-  return cuenta.saldoTotal -
-    saldoApartado;
-};
-
-const generarNumeroCuenta = (
-  id
-) => {
-  return (
-    "300000" +
-    String(id).padStart(4, "0")
+  return redondearMoneda(
+    cuenta.saldoTotal -
+    saldoApartado
   );
 };
 
-const crearCuenta = (
+// ========================================
+// Crear
+// numero_cuenta, saldo_total (0), moneda
+// (COP) y estado (activa) los fija la base
+// de datos, nunca el cliente
+// ========================================
+const crearCuenta = async (
   datos
 ) => {
-  const nuevoId =
-    generarSiguienteId(
-      cuentas
+  const resultado =
+    await consultar(
+      `INSERT INTO public.cuentas (usuario_id)
+       VALUES ($1)
+       RETURNING ${COLUMNAS_CUENTA}`,
+      [datos.usuarioId]
     );
 
-  const cuenta = {
-    id:
-      nuevoId,
-
-    usuarioId:
-      datos.usuarioId,
-
-    numeroCuenta:
-      generarNumeroCuenta(
-        nuevoId
-      ),
-
-    saldoTotal: 0,
-
-    moneda: "COP",
-
-    estado: "activa"
-  };
-
-  cuentas.push(
-    cuenta
-  );
-
-  return cuenta;
+  return resultado.rows[0];
 };
 
-const registrarDeposito = (
+// ========================================
+// Movimientos de saldo
+// La suma y la resta se hacen en SQL
+// (NUMERIC), no en JavaScript. El CHECK
+// saldo_total >= 0 impide dejar la cuenta
+// en negativo aunque falle la validación
+// previa.
+// ========================================
+const registrarDeposito = async (
   cuentaId,
-  monto
+  monto,
+  bd = null
 ) => {
-  const cuenta =
-    obtenerCuentaPorId(
-      cuentaId
+  const resultado =
+    await ejecutar(
+      bd,
+      `UPDATE public.cuentas
+       SET saldo_total = saldo_total + $2
+       WHERE id = $1
+       RETURNING ${COLUMNAS_CUENTA}`,
+      [cuentaId, monto]
     );
 
-  cuenta.saldoTotal =
-    redondearMoneda(
-      cuenta.saldoTotal +
-      monto
-    );
-
-  return cuenta;
+  return resultado.rows[0] ?? null;
 };
 
-const registrarRetiro = (
+const registrarRetiro = async (
   cuentaId,
-  monto
+  monto,
+  bd = null
 ) => {
-  const cuenta =
-    obtenerCuentaPorId(
-      cuentaId
+  const resultado =
+    await ejecutar(
+      bd,
+      `UPDATE public.cuentas
+       SET saldo_total = saldo_total - $2
+       WHERE id = $1
+       RETURNING ${COLUMNAS_CUENTA}`,
+      [cuentaId, monto]
     );
 
-  cuenta.saldoTotal =
-    redondearMoneda(
-      cuenta.saldoTotal -
-      monto
-    );
-
-  return cuenta;
+  return resultado.rows[0] ?? null;
 };
 
-const actualizarEstadoCuenta = (
+const actualizarEstadoCuenta = async (
   id,
   nuevoEstado
 ) => {
-  const cuenta =
-    obtenerCuentaPorId(
-      id
+  const resultado =
+    await consultar(
+      `UPDATE public.cuentas
+       SET estado = $2
+       WHERE id = $1
+       RETURNING ${COLUMNAS_CUENTA}`,
+      [id, nuevoEstado]
     );
 
-  if (
-    !cuenta
-  ) {
-    return null;
-  }
-
-  cuenta.estado =
-    nuevoEstado;
-
-  return cuenta;
+  return resultado.rows[0] ?? null;
 };
 
 module.exports = {
   obtenerCuentas,
   obtenerCuentaPorId,
   obtenerCuentasPorUsuario,
+  bloquearCuentas,
   calcularSaldoApartado,
   calcularSaldoDisponible,
   crearCuenta,

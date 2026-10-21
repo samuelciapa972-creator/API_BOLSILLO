@@ -21,7 +21,7 @@ const options = {
         "1.0.0",
 
       description:
-        "API REST para una billetera virtual desarrollada con Node.js, Express, prácticas seguras y documentación OpenAPI."
+        "API REST para una billetera virtual desarrollada con Node.js, Express, PostgreSQL (Supabase), prácticas seguras y documentación OpenAPI. Todo movimiento de dinero se ejecuta en una transacción SQL atómica."
     },
 
 
@@ -68,6 +68,21 @@ const options = {
 
           description:
             "JWT obtenido mediante el endpoint de login."
+        }
+      },
+
+      responses: {
+
+        NoAutenticado: {
+
+          description:
+            "Credenciales de autenticación ausentes o inválidas (sin JWT, JWT alterado o expirado)"
+        },
+
+        SinPermisos: {
+
+          description:
+            "Usuario autenticado sin permisos sobre la operación o sobre este recurso concreto"
         }
       }
     },
@@ -127,7 +142,7 @@ const options = {
           "Autenticación",
 
         description:
-          "Registro, inicio de sesión (JWT) y perfil del usuario autenticado"
+          "Registro, inicio de sesión (JWT), perfil y gestión administrativa de usuarios de acceso"
       }
 
     ]

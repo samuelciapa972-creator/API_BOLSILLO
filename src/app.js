@@ -99,6 +99,22 @@ const validarApiKey =
 
 
 // ========================================
+// Servicios
+// ========================================
+
+const authService =
+  require(
+    "./services/auth.service"
+  );
+
+
+const apiKeysService =
+  require(
+    "./services/apiKeys.service"
+  );
+
+
+// ========================================
 // Aplicación
 // ========================================
 
@@ -370,24 +386,55 @@ app.use(
 
 
 // ========================================
-// Servidor
+// Iniciar servidor
+// Configurar → inicializar datos → si todo
+// está bien, abrir el puerto (fail-fast)
 // ========================================
 
-app.listen(
-  PORT,
+const iniciarServidor =
+  async () => {
 
-  () => {
+    try {
 
-    console.log(
-      `Servidor ejecutándose en http://localhost:${PORT}`
-    );
+      // API Keys de .env → public.api_keys
+      await apiKeysService
+        .sincronizarApiKeys();
 
-    console.log(
-      `Swagger UI: http://localhost:${PORT}/api-docs`
-    );
 
-    console.log(
-      `OpenAPI JSON: http://localhost:${PORT}/openapi.json`
-    );
-  }
-);
+      // Bootstrap del primer administrador
+      await authService
+        .crearAdministradorInicial();
+
+
+      app.listen(
+        PORT,
+
+        () => {
+
+          console.log(
+            `Servidor ejecutándose en http://localhost:${PORT}`
+          );
+
+          console.log(
+            `Swagger UI: http://localhost:${PORT}/api-docs`
+          );
+
+          console.log(
+            `OpenAPI JSON: http://localhost:${PORT}/openapi.json`
+          );
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Error al iniciar el servidor:",
+        error.message
+      );
+
+      process.exit(1);
+    }
+  };
+
+
+iniciarServidor();
