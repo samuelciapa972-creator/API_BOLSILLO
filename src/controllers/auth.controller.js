@@ -45,7 +45,7 @@ const registrar = async (
     // Verificar email duplicado
     // ------------------------------------
     const usuarioExistente =
-      authService
+      await authService
         .obtenerUsuarioPorEmail(
           datos.email
         );
@@ -229,7 +229,7 @@ const crearUsuarioAdministrativo = async (
     // Verificar email duplicado
     // ------------------------------------
     const usuarioExistente =
-      authService
+      await authService
         .obtenerUsuarioPorEmail(
           datos.email
         );

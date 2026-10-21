@@ -83,7 +83,7 @@ const validarDuplicados = (
 // titulares)
 // ========================================
 
-const validarAsociacionLogin = (
+const validarAsociacionLogin = async (
   usuarioAuthId,
   idExcluir = null
 ) => {
@@ -96,7 +96,7 @@ const validarAsociacionLogin = (
 
 
   const usuarioAuth =
-    authService
+    await authService
       .obtenerUsuarioPorId(
         usuarioAuthId
       );
@@ -268,81 +268,88 @@ const obtenerCuentasDeUsuario = (
 // POST
 // ========================================
 
-const crearUsuario = (
+const crearUsuario = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
+  try {
+
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
+      );
 
 
-  const errorDuplicado =
-    validarDuplicados(
-      datosPermitidos
-    );
-
-
-  if (
-    errorDuplicado
-  ) {
-
-    return res
-      .status(
-        errorDuplicado.status
-      )
-      .json({
-        mensaje:
-          errorDuplicado.mensaje
-      });
-  }
-
-
-  const errorAsociacion =
-    validarAsociacionLogin(
-      datosPermitidos.usuarioAuthId
-    );
-
-
-  if (
-    errorAsociacion
-  ) {
-
-    return res
-      .status(
-        errorAsociacion.status
-      )
-      .json({
-        mensaje:
-          errorAsociacion.mensaje
-      });
-  }
-
-
-  const usuarioCreado =
-    usuariosService
-      .crearUsuario(
+    const errorDuplicado =
+      validarDuplicados(
         datosPermitidos
       );
 
 
-  res
-    .status(201)
-    .json({
+    if (
+      errorDuplicado
+    ) {
 
-      mensaje:
-        "Usuario creado correctamente",
+      return res
+        .status(
+          errorDuplicado.status
+        )
+        .json({
+          mensaje:
+            errorDuplicado.mensaje
+        });
+    }
 
-      usuario:
-        usuarioCreado
-    });
+
+    const errorAsociacion =
+      await validarAsociacionLogin(
+        datosPermitidos.usuarioAuthId
+      );
+
+
+    if (
+      errorAsociacion
+    ) {
+
+      return res
+        .status(
+          errorAsociacion.status
+        )
+        .json({
+          mensaje:
+            errorAsociacion.mensaje
+        });
+    }
+
+
+    const usuarioCreado =
+      usuariosService
+        .crearUsuario(
+          datosPermitidos
+        );
+
+
+    res
+      .status(201)
+      .json({
+
+        mensaje:
+          "Usuario creado correctamente",
+
+        usuario:
+          usuarioCreado
+      });
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
@@ -350,109 +357,116 @@ const crearUsuario = (
 // PUT
 // ========================================
 
-const actualizarUsuario = (
+const actualizarUsuario = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
+      );
 
 
-  const usuarioActual =
-    usuariosService
-      .obtenerUsuarioPorId(
+    const usuarioActual =
+      usuariosService
+        .obtenerUsuarioPorId(
+          id
+        );
+
+
+    if (
+      !usuarioActual
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Usuario no encontrado"
+        });
+    }
+
+
+    const errorDuplicado =
+      validarDuplicados(
+        datosPermitidos,
         id
       );
 
 
-  if (
-    !usuarioActual
-  ) {
+    if (
+      errorDuplicado
+    ) {
 
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Usuario no encontrado"
-      });
-  }
-
-
-  const errorDuplicado =
-    validarDuplicados(
-      datosPermitidos,
-      id
-    );
+      return res
+        .status(
+          errorDuplicado.status
+        )
+        .json({
+          mensaje:
+            errorDuplicado.mensaje
+        });
+    }
 
 
-  if (
-    errorDuplicado
-  ) {
-
-    return res
-      .status(
-        errorDuplicado.status
-      )
-      .json({
-        mensaje:
-          errorDuplicado.mensaje
-      });
-  }
-
-
-  const errorAsociacion =
-    validarAsociacionLogin(
-      datosPermitidos.usuarioAuthId,
-      id
-    );
-
-
-  if (
-    errorAsociacion
-  ) {
-
-    return res
-      .status(
-        errorAsociacion.status
-      )
-      .json({
-        mensaje:
-          errorAsociacion.mensaje
-      });
-  }
-
-
-  const usuarioActualizado =
-    usuariosService
-      .actualizarUsuario(
-        id,
-        datosPermitidos
+    const errorAsociacion =
+      await validarAsociacionLogin(
+        datosPermitidos.usuarioAuthId,
+        id
       );
 
 
-  res
-    .status(200)
-    .json({
+    if (
+      errorAsociacion
+    ) {
 
-      mensaje:
-        "Usuario actualizado correctamente",
+      return res
+        .status(
+          errorAsociacion.status
+        )
+        .json({
+          mensaje:
+            errorAsociacion.mensaje
+        });
+    }
 
-      usuario:
-        usuarioActualizado
-    });
+
+    const usuarioActualizado =
+      usuariosService
+        .actualizarUsuario(
+          id,
+          datosPermitidos
+        );
+
+
+    res
+      .status(200)
+      .json({
+
+        mensaje:
+          "Usuario actualizado correctamente",
+
+        usuario:
+          usuarioActualizado
+      });
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 

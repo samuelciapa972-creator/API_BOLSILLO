@@ -43,6 +43,13 @@ const validarRegistro = [
     .withMessage(
       "Debe proporcionar un correo electrónico válido"
     )
+    // Mismo límite que usuarios_auth.email
+    .isLength({
+      max: 150
+    })
+    .withMessage(
+      "El correo electrónico no puede superar 150 caracteres"
+    )
     .normalizeEmail(
       opcionesEmail
     ),

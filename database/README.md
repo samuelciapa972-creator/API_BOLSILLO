@@ -2,7 +2,7 @@
 
 **Tecnología:** Supabase + PostgreSQL 16
 **Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema) y 7.2 (conexión) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: migrar los services (7.3–7.5).
+**Estado:** 7.1 (esquema), 7.2 (conexión) y 7.3 (login/auth) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.4–7.5.
 
 ## 1. Objetivo
 
@@ -178,10 +178,56 @@ S01–S12 y C01–C09 se verificaron en **PostgreSQL 16 local (Docker)**, con un
 | C16 | Huella del certificado descargado del proyecto vs `certs/prod-ca-2021.crt` | Idénticas | ✅ |
 | C14 | Conexión *Direct* (`db.<ref>.supabase.co`) desde red sin IPv6 | `ENETUNREACH`: usar Session pooler | Observado |
 
-## 10. Próximos pasos
+## 10. Bloque 7.3 — Usuarios de login y autenticación
 
-- **7.3** Usuarios de login (`usuarios_auth`), auth y bootstrap idempotente del administrador.
+`src/data/usuariosAuth.js` se eliminó: `auth.service.js` trabaja sobre `public.usuarios_auth` + `public.roles`.
+
+| Archivo | Cambio |
+|---|---|
+| `src/services/auth.service.js` | SQL parametrizado; todas las funciones son `async`. El rol se resuelve por nombre en `roles` (en la tabla solo vive `rol_id`) |
+| `src/controllers/auth.controller.js` | `await` en la verificación de email duplicado |
+| `src/controllers/usuarios.controller.js` | `validarAsociacionLogin()` es `async` (consulta el login en BD); POST y PUT con `try/catch` + `next(error)` |
+| `src/middlewares/auth.middleware.js` | Tras verificar firma y expiración, consulta al usuario: inexistente → 401, deshabilitado → 403. **El rol vigente sale de la BD**, no del token |
+| `src/middlewares/errores.middleware.js` | Traduce SQLSTATE (23505, 23503, 23514, 23502, 23001, 22001) a 409/400 con mensaje genérico; el log solo registra código y restricción |
+| `src/middlewares/auth.validator.js` | Email máximo 150 caracteres (igual que la columna) |
+
+**Se conserva:** el contrato del JWT (`sub` = `usuarios_auth.id`, `email`, `rol`), bcrypt con cost 12, que el registro público cree siempre `cliente`, el mismo 401 para un email inexistente y para una contraseña errónea, y que no se registren contraseñas ni hashes.
+
+**Bootstrap idempotente:** si `ADMIN_EMAIL` ya existe, no se crea otro administrador ni se cambia su contraseña. `INSERT … ON CONFLICT (LOWER(email)) DO NOTHING` cubre el caso de dos instancias arrancando a la vez. Para cambiar la contraseña del admin **no** basta con editar `.env`.
+
+**Transitorio hasta 7.4:** los titulares (`usuarios`) siguen en memoria. Su `usuarioAuthId` ya apunta a IDs reales de `usuarios_auth`, pero las asociaciones se pierden al reiniciar Node.js.
+
+### Pruebas 7.3
+
+Local = PostgreSQL 16 con TLS en Docker. Supabase = proyecto real, solo pruebas de humo (no se crearon usuarios de prueba).
+
+| ID | Caso | Esperado | Resultado |
+|---|---|---|---|
+| P01 | Registro válido | 201 | ✅ Local |
+| P02 | Correo duplicado / con mayúsculas | 409 | ✅ Local |
+| P03 | Login correcto | 200 | ✅ Local · ✅ Supabase (admin) |
+| P04 | Contraseña incorrecta / email inexistente | 401 / 401 | ✅ Local · ✅ Supabase |
+| P05 | Perfil con JWT | 200 | ✅ Local · ✅ Supabase |
+| P06 | Perfil sin JWT | 401 | ✅ Local |
+| P07 | Registro enviando `rol: administrador` | 201 con rol `cliente` | ✅ Local |
+| P07b | Email > 150 caracteres | 400 | ✅ Local |
+| A01 | Admin crea auditor | 201 | ✅ Local |
+| A02 | Cliente intenta crear administrador | 403 | ✅ Local |
+| A03–A05 | Asociar titular a login cliente / auditor / inexistente | 201 / 409 / 400 | ✅ Local |
+| R01 | 3 registros simultáneos con el mismo email (×5) | 1 fila, 201 + 409 + 409 | ✅ Local (los 10 rechazos los detuvo el índice único: 23505 → 409) |
+| V01 | Login de usuario deshabilitado | 403 | ✅ Local |
+| V02 | Token emitido antes de deshabilitar | 403 | ✅ Local |
+| V03 | Rol cambiado en BD con token viejo | Rige el rol de la BD | ✅ Local |
+| V04–V05 | Token firmado con `sub` no numérico / inexistente | 401 | ✅ Local |
+| E01 | Respuesta 409 sin detalle SQL | Mensaje genérico | ✅ Local |
+| B01–B02 | Reiniciar: no duplica administrador | 1 admin, sin "creado" | ✅ Local · ✅ Supabase (3 arranques) |
+| B03–B04 | Reiniciar: login y token previo siguen válidos | 200 | ✅ Local |
+| B05 | `password_hash` con formato bcrypt `$2b$12$` | Sí | ✅ Local |
+| B06 | Logs sin contraseñas ni hashes | 0 coincidencias | ✅ Local · ✅ Supabase |
+
+## 11. Próximos pasos
+
 - **7.4** Titulares (`usuarios`) y API Keys (`api_keys`).
 - **7.5** Cuentas, bolsillos y transacciones, con movimientos de dinero atómicos (`ejecutarTransaccion` + `SELECT … FOR UPDATE`) y `propiedad.middleware.js` asíncrono.
 
-No borrar `src/data/` hasta terminar la migración y sus pruebas.
+No borrar el resto de `src/data/` hasta terminar la migración y sus pruebas.

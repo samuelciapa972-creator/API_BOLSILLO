@@ -97,8 +97,9 @@ API_BOLSILLO/
 │   │   ├── cuentas.js
 │   │   ├── transacciones.js
 │   │   ├── bolsillos.js
-│   │   ├── apiKeys.js
-│   │   └── usuariosAuth.js
+│   │   └── apiKeys.js
+│   │   (usuariosAuth.js se eliminó en el Bloque 7.3:
+│   │    ahora es la tabla public.usuarios_auth)
 │   │
 │   ├── docs/
 │   │   └── swagger.js
@@ -420,7 +421,7 @@ Migración progresiva de `src/data/` a PostgreSQL, conservando API Key, JWT, RBA
 |---|---|---|
 | 7.1 | Esquema relacional (`database/01…04`), RLS y `REVOKE` | Verificado en local y en Supabase |
 | 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | Verificado contra Supabase (Session pooler) |
-| 7.3 | Usuarios de login, auth y bootstrap del administrador | Pendiente |
+| 7.3 | Usuarios de login, auth y bootstrap del administrador | Verificado en local y en Supabase |
 | 7.4 | Titulares y API Keys | Pendiente |
 | 7.5 | Cuentas, bolsillos y transacciones atómicas | Pendiente |
 
