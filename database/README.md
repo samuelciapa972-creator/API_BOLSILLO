@@ -2,7 +2,7 @@
 
 **Tecnología:** Supabase + PostgreSQL 16
 **Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema) y 7.2 (conexión) listos y verificados en PostgreSQL 16 local. Pendiente: ejecutarlos en el proyecto Supabase real y migrar los services (7.3–7.5).
+**Estado:** 7.1 (esquema) y 7.2 (conexión) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: migrar los services (7.3–7.5).
 
 ## 1. Objetivo
 
@@ -117,6 +117,8 @@ RLS está **activado** en las 7 tablas y **sin políticas**. Además, se aplica 
    ```dotenv
    DATABASE_URL=postgresql://USUARIO:CONTRASENA@HOST:5432/postgres
    ```
+   - La URI de **Direct** (`db.<ref>.supabase.co`) es solo IPv6: en redes sin IPv6 falla con `ENETUNREACH`. El Session pooler usa el usuario `postgres.<ref>` y el host `aws-0-<región>.pooler.supabase.com`.
+   - Quitar los corchetes de `[YOUR-PASSWORD]`: si quedan, la autenticación falla con `28P01`.
    - Sin `?sslmode=...`: `src/config/database.js` lo rechaza porque reemplazaría la configuración TLS.
    - Codificar caracteres especiales de la contraseña (`@` → `%40`, `#` → `%23`, …).
 2. Certificado: `certs/prod-ca-2021.crt` es la CA pública **Supabase Root 2021 CA** (no es un secreto). Para confirmar que es la tuya: **Database → Settings → SSL configuration → Download certificate** y comparar la huella:
@@ -143,7 +145,7 @@ RLS está **activado** en las 7 tablas y **sin políticas**. Además, se aplica 
 
 ## 9. Evidencias
 
-Verificado en **PostgreSQL 16 local (Docker)**, con un stub de `auth.users` y de los roles `anon`/`authenticated`, que en Supabase ya existen. **Falta repetirlo en Supabase.**
+S01–S12 y C01–C09 se verificaron en **PostgreSQL 16 local (Docker)**, con un stub de `auth.users` y de los roles `anon`/`authenticated`. C10–C13 se verificaron en el proyecto Supabase.
 
 | ID | Prueba | Esperado | Local |
 |---|---|---|---|
@@ -168,7 +170,11 @@ Verificado en **PostgreSQL 16 local (Docker)**, con un stub de `auth.users` y de
 | C07 | Contraseña errónea | `28P01` | ✅ |
 | C08 | `ejecutarTransaccion`: fallo a mitad | ROLLBACK, saldo intacto | ✅ |
 | C09 | `ejecutarTransaccion`: éxito | COMMIT, montos como `Number` | ✅ |
-| C10 | `npm run db:probar` contra Supabase | 3 roles | ⏳ Pendiente |
+| C10 | `npm run db:probar` contra Supabase (Session pooler, CA Supabase, `rejectUnauthorized: true`) | 3 roles | ✅ Supabase |
+| C11 | Verificación en Supabase: 7 tablas, 7 RLS, 8 FK, 0 políticas, 0 grants, 2 triggers | Igual que local | ✅ Supabase |
+| C12 | Caso estrella en Supabase | Disponible 20.000 | ✅ Supabase |
+| C13 | `UPDATE` de transacción en Supabase | `23001` | ✅ Supabase |
+| C14 | Conexión *Direct* (`db.<ref>.supabase.co`) desde red sin IPv6 | `ENETUNREACH`: usar Session pooler | Observado |
 
 ## 10. Próximos pasos
 

@@ -418,8 +418,8 @@ Migración progresiva de `src/data/` a PostgreSQL, conservando API Key, JWT, RBA
 
 | Sub-bloque | Alcance | Estado |
 |---|---|---|
-| 7.1 | Esquema relacional (`database/01…04`), RLS y `REVOKE` | Verificado en PostgreSQL 16 local; pendiente en Supabase |
-| 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | Verificado localmente; pendiente contra Supabase |
+| 7.1 | Esquema relacional (`database/01…04`), RLS y `REVOKE` | Verificado en local y en Supabase |
+| 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | Verificado contra Supabase (Session pooler) |
 | 7.3 | Usuarios de login, auth y bootstrap del administrador | Pendiente |
 | 7.4 | Titulares y API Keys | Pendiente |
 | 7.5 | Cuentas, bolsillos y transacciones atómicas | Pendiente |
