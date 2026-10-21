@@ -105,6 +105,8 @@ const {
  *           format: float
  *           minimum: 0.01
  *           maximum: 2000000
+ *           multipleOf: 0.01
+ *           description: Máximo 2 decimales
  *           example: 50000.00
  *
  *         descripcion:
@@ -130,6 +132,8 @@ const {
  *           format: float
  *           minimum: 0.01
  *           maximum: 2000000
+ *           multipleOf: 0.01
+ *           description: Máximo 2 decimales
  *           example: 50000.00
  *
  *         descripcion:
@@ -160,6 +164,8 @@ const {
  *           format: float
  *           minimum: 0.01
  *           maximum: 2000000
+ *           multipleOf: 0.01
+ *           description: Máximo 2 decimales
  *           example: 50000.00
  *
  *         descripcion:

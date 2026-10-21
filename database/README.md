@@ -2,7 +2,7 @@
 
 **Tecnología:** Supabase + PostgreSQL 16
 **Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth), 7.4 (titulares/API Keys) y 7.5 pasos 1–2 (cuentas, bolsillos y transacciones atómicas) verificados en local y en Supabase (`us-east-2`, Session pooler). Pendiente: 7.5 paso 3 (cierre).
+**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth), 7.4 (titulares/API Keys) y 7.5 (cuentas, bolsillos y transacciones atómicas) verificados en local y en Supabase (`us-east-2`, Session pooler). **Bloque 7 cerrado.**
 
 ## 1. Objetivo
 
@@ -384,6 +384,44 @@ La conciliación (X11) cuadra incluso en el mutante: la atomicidad sigue funcion
 
 **En Supabase solo se hicieron lecturas:** las transacciones son inmutables y cualquier movimiento de prueba quedaría para siempre en el libro.
 
-## 14. Próximos pasos
+## 14. Bloque 7.5 — Paso 3: Cierre
 
-- **7.5 paso 3:** eliminar los `src/data/` que ya no se usan (`usuarios`, `cuentas`, `bolsillos`, `transacciones`) y `generarSiguienteId`; actualizar Swagger y Postman; matriz final; `npm audit`.
+| Cambio | Detalle |
+|---|---|
+| `src/data/` | Se eliminaron `usuarios.js`, `cuentas.js`, `bolsillos.js` y `transacciones.js`. Queda `apiKeys.js`, que es la semilla sincronizada con `public.api_keys` |
+| `src/utils/comunes.js` | Se eliminó `generarSiguienteId` (los ids los genera `GENERATED ALWAYS AS IDENTITY`) |
+| Swagger | `monto` y `meta` con `multipleOf: 0.01`; `meta` con su máximo; la descripción de la API menciona PostgreSQL y las transacciones atómicas |
+| Postman | Colección nueva del Bloque 7 (40 peticiones, 53 tests) que se puede repetir sobre una BD persistente. Ver el README principal |
+| `npm audit fix` | Actualizó `proxy-addr` (crítica), `brace-expansion` y `fast-uri`. **Producción: 0 vulnerabilidades**. Quedan 3 avisos solo de desarrollo (nodemon); no se aplicó `--force` porque bajaría nodemon a 1.14.10 |
+
+**Regresión final con el código definitivo** (PostgreSQL 16 con TLS en Docker, BD limpia por batería):
+
+| Batería | Resultado |
+|---|---|
+| Paso 1: cuentas, movimientos, estados, RBAC/BOLA, persistencia (49) | ✅ 0 fallas |
+| Paso 2: bolsillos, libro contable, atomicidad, concurrencia, persistencia (51) | ✅ 0 fallas |
+| Colección Postman con newman (40 peticiones, 53 tests), dos corridas seguidas sobre la misma BD | ✅ 0 fallas |
+| Supabase: arranque, `/api-docs`, `/openapi.json`, lecturas y conciliación del libro | ✅ |
+
+## 15. Resumen y criterios de cierre del Bloque 7
+
+**Pruebas registradas en total:** 7.1 (20 negativas de restricciones + verificación) · 7.2 (conexión y TLS: 16) · 7.3 (30) · 7.4 (38) · 7.5 (49 + 51 + 53 de Postman) · 3 mutantes que demuestran que las pruebas detectan los errores que buscan.
+
+Criterio de cierre del insumo (7.5) y cómo se cumple:
+
+| Criterio | Evidencia |
+|---|---|
+| Matriz de pruebas con resultados registrados | §9–§14 |
+| Persistencia comprobada tras reiniciar | R01–R08 de cada paso |
+| Conflictos bloqueados | En Bolsillo, el equivalente a la "agenda" son los débitos concurrentes: X01–X10 y el mutante sin `FOR UPDATE` |
+| Perfiles ajenos no consultables | O05–O11 (7.4), B01–B15 (7.5), carpeta 4 de Postman |
+| Integridad referencial ante intentos de eliminación | U10, I01, E01–E03, carpeta 5 de Postman |
+
+## 16. Pendiente para bloques futuros
+
+- **Supabase Auth:** `usuarios_auth.auth_user_id` está listo, pero las contraseñas siguen con bcrypt en la propia tabla. No mantener dos sistemas de contraseñas indefinidamente.
+- **Políticas RLS** por usuario, si algún cliente llega a consultar Supabase directamente. Hoy Express usa un rol de servidor que omite RLS, y la autorización vive en Express.
+- **Paginación** en los listados (`GET /cuentas`, `/transacciones`…) cuando crezcan los datos.
+- **Rendimiento:** cada petición hace unas 3 consultas de seguridad (API Key, usuario del JWT y titular). Se puede agregar una caché corta si hace falta.
+- **Rate limit en memoria:** se reinicia con el servidor y no se comparte entre instancias.
+- **SAST, SCA y DAST** del README principal (Semgrep, npm audit, OWASP ZAP) sobre la versión persistente.

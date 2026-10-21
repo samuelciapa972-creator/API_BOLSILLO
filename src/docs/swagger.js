@@ -21,7 +21,7 @@ const options = {
         "1.0.0",
 
       description:
-        "API REST para una billetera virtual desarrollada con Node.js, Express, prácticas seguras y documentación OpenAPI."
+        "API REST para una billetera virtual desarrollada con Node.js, Express, PostgreSQL (Supabase), prácticas seguras y documentación OpenAPI. Todo movimiento de dinero se ejecuta en una transacción SQL atómica."
     },
 
 
@@ -162,4 +162,4 @@ const swaggerSpec =
 
 
 module.exports =
-  swaggerSpec;
+  swaggerSpec;

@@ -1,4 +1,4 @@
-# API BOLSILLO — Lab. No.10
+# API BOLSILLO — Bloque 7 (Supabase + PostgreSQL)
 
 Proyecto para el desarrollo y análisis de seguridad de una API REST para una billetera virtual, utilizando Node.js, Express, Swagger/OpenAPI y herramientas de análisis SAST, SCA y DAST.
 
@@ -32,9 +32,9 @@ El proyecto permite formalizar:
 - análisis SCA;
 - análisis DAST.
 
-Los datos se almacenan inicialmente en memoria mediante archivos JavaScript.
+Los datos se almacenaron inicialmente en memoria mediante archivos JavaScript. Desde el Bloque 7 viven en **PostgreSQL (Supabase)**: ver la sección del Bloque 7 y [`database/README.md`](./database/README.md).
 
-Esta arquitectura será posteriormente adaptable a BaaS.
+La arquitectura por capas (rutas → validadores → controllers → services) permitió migrar a BaaS sin cambiar los endpoints.
 
 # Instalación
 
@@ -92,14 +92,13 @@ API_BOLSILLO/
 │   │   ├── transacciones.controller.js
 │   │   └── bolsillos.controller.js
 │   │
+│   ├── config/
+│   │   └── database.js      (pool pg + TLS, consultar, ejecutarTransaccion)
+│   │
 │   ├── data/
-│   │   ├── usuarios.js
-│   │   ├── cuentas.js
-│   │   ├── transacciones.js
-│   │   ├── bolsillos.js
-│   │   └── apiKeys.js
-│   │   (usuariosAuth.js se eliminó en el Bloque 7.3:
-│   │    ahora es la tabla public.usuarios_auth)
+│   │   └── apiKeys.js       (semilla: se sincroniza con public.api_keys)
+│   │   (los demás arreglos en memoria se eliminaron en el
+│   │    Bloque 7: los datos viven en PostgreSQL)
 │   │
 │   ├── docs/
 │   │   └── swagger.js
@@ -135,11 +134,25 @@ API_BOLSILLO/
 │   │
 │   ├── utils/
 │   │   ├── comunes.js
+│   │   ├── errores.js       (ErrorNegocio)
 │   │   ├── crypto.util.js
 │   │   ├── jwt.util.js
 │   │   └── password.util.js
 │   │
 │   └── app.js
+│
+├── certs/
+│   └── prod-ca-2021.crt     (CA pública de Supabase)
+│
+├── database/
+│   ├── 01_esquema_bolsillo.sql
+│   ├── 02_roles_seguridad.sql
+│   ├── 03_verificacion.sql
+│   ├── 04_datos_prueba.sql
+│   └── README.md            (guía, modelo y evidencias del Bloque 7)
+│
+├── scripts/
+│   └── probar-conexion.js   (npm run db:probar)
 │
 ├── postman/
 │   ├── API_BOLSILLO.postman_collection.json
@@ -411,21 +424,46 @@ Preparación (en una sola sesión, sin reiniciar el servidor, porque los datos e
 | Eliminar titular / editar bolsillo | A / Auditor | `DELETE /api/usuarios/1` / `PUT /api/bolsillos/1` | 403 |
 | Cambiar estado de cuenta | A | `PATCH /api/cuentas/1/estado` | 403 |
 
-> La colección de Postman de `postman/` es anterior a este laboratorio y no envía JWT. Para estas pruebas se usa Swagger UI (botón **Authorize** con `ApiKeyAuth` y `BearerAuth`).
+> Para estas pruebas se usa Swagger UI (botón **Authorize** con `ApiKeyAuth` y `BearerAuth`). Desde el Bloque 7, la colección de `postman/` también envía JWT (ver la sección del Bloque 7).
 
 # Bloque 7 — Persistencia con Supabase + PostgreSQL
 
-Migración progresiva de `src/data/` a PostgreSQL, conservando API Key, JWT, RBAC y BOLA. Guía completa, modelo y evidencias en [`database/README.md`](./database/README.md).
+Los arreglos en memoria se reemplazaron por PostgreSQL (Supabase) **sin cambiar los endpoints ni los contratos JSON**, conservando API Key, JWT, RBAC, BOLA y validaciones. Guía completa, modelo, decisiones y evidencias en [`database/README.md`](./database/README.md).
 
 | Sub-bloque | Alcance | Estado |
 |---|---|---|
-| 7.1 | Esquema relacional (`database/01…04`), RLS y `REVOKE` | Verificado en local y en Supabase |
-| 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | Verificado contra Supabase (Session pooler) |
-| 7.3 | Usuarios de login, auth y bootstrap del administrador | Verificado en local y en Supabase |
-| 7.4 | Titulares y API Keys | Verificado en local y en Supabase |
-| 7.5 | Cuentas, bolsillos y transacciones atómicas | Pasos 1–2 verificados (cuentas; bolsillos y transacciones atómicas); paso 3 (cierre) pendiente |
+| 7.1 | Esquema relacional (`database/01…04`), RLS y `REVOKE` | ✅ Local y Supabase |
+| 7.2 | `pg` + TLS verificado (`src/config/database.js`), `npm run db:probar` | ✅ Local y Supabase |
+| 7.3 | Usuarios de login, auth y bootstrap idempotente del administrador | ✅ Local y Supabase |
+| 7.4 | Titulares y API Keys | ✅ Local y Supabase |
+| 7.5 | Cuentas, bolsillos y transacciones **atómicas** (`SELECT … FOR UPDATE`) | ✅ Local y Supabase (en Supabase solo lecturas) |
 
-Requiere `DATABASE_URL` en `.env` (ver `.env.example`).
+**Puesta en marcha:** crear el proyecto Supabase y ejecutar los scripts de `database/` (ver `database/README.md` §3–§4), poner `DATABASE_URL` en `.env` (Session pooler, sin `sslmode`), y luego `npm run db:probar` y `npm run dev`.
+
+**Lo más importante del bloque:**
+
+- **Todo movimiento de dinero es una transacción SQL:** se bloquea la cuenta, se valida el disponible sobre la fila bloqueada, se mueve el saldo y se registra la transacción, todo o nada. Con 10 retiros simultáneos de 5.000 y 20.000 disponibles se aprueban exactamente 4. Sin el bloqueo se aprobaron 8 y el disponible quedó negativo (verificado con un mutante).
+- **La base de datos es la segunda línea de defensa:** CHECK de saldos, montos y estados; unicidad sin distinguir mayúsculas; FK `RESTRICT`; un trigger hace inmutables las transacciones; RLS y `REVOKE` cierran el acceso directo.
+- **Montos en `NUMERIC(14,2)`** y con máximo 2 decimales en la entrada.
+
+## Colección de Postman (Bloque 7)
+
+`postman/API_BOLSILLO.postman_collection.json` tiene 40 peticiones y 53 tests automáticos, en este orden: preparación (login, clientes A y B, titulares, cuentas) → movimientos de dinero (caso estrella incluido) → validaciones → seguridad (API Key, JWT, RBAC, BOLA) → integridad.
+
+1. Importar la colección y el environment `postman/API_BOLSILLO.postman_environment.json`.
+2. En el environment, completar `apiKey` (el valor de `API_KEY_POSTMAN`), `adminEmail` y `adminPassword` (los de `.env`).
+3. **Run collection**, en orden.
+
+Cada corrida crea sus propios datos únicos, así que se puede repetir sobre la misma base. Ojo: como las transacciones son inmutables, cada corrida deja movimientos permanentes en el libro. Úsala contra una base de laboratorio. Desde la terminal:
+
+```bash
+npx newman run postman/API_BOLSILLO.postman_collection.json \
+  -e postman/API_BOLSILLO.postman_environment.json
+```
+
+## Dependencias (`npm audit`)
+
+`npm audit fix` actualizó `proxy-addr` (crítica: falsificación de IP; afecta al rate limit detrás de un proxy), `brace-expansion` y `fast-uri`. **Dependencias de producción: 0 vulnerabilidades** (`npm audit --omit=dev`). Quedan 3 avisos altos en `braces` → `chokidar` → `nodemon`, solo de desarrollo. No se aplicó `npm audit fix --force` porque bajaría nodemon de 3.x a 1.14.10.
 
 # realizar las pruebas y documentar
 SAST → Semgrep
