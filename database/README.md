@@ -417,6 +417,10 @@ Criterio de cierre del insumo (7.5) y cómo se cumple:
 | Perfiles ajenos no consultables | O05–O11 (7.4), B01–B15 (7.5), carpeta 4 de Postman |
 | Integridad referencial ante intentos de eliminación | U10, I01, E01–E03, carpeta 5 de Postman |
 
+### Evidencias en Supabase (capturas)
+
+En [`docs/evidencias/`](../docs/evidencias/README.md) están las 10 capturas tomadas contra Supabase: el POST en Swagger, el registro en PostgreSQL y la consulta después de reiniciar Node.js (las tres que pide el insumo), además del caso estrella, 401, 400 y BOLA 403. La API Key y los JWT aparecen tapados.
+
 ## 16. Pendiente para bloques futuros
 
 - **Supabase Auth:** `usuarios_auth.auth_user_id` está listo, pero las contraseñas siguen con bcrypt en la propia tabla. No mantener dos sistemas de contraseñas indefinidamente.

@@ -446,6 +446,8 @@ Los arreglos en memoria se reemplazaron por PostgreSQL (Supabase) **sin cambiar 
 - **La base de datos es la segunda línea de defensa:** CHECK de saldos, montos y estados; unicidad sin distinguir mayúsculas; FK `RESTRICT`; un trigger hace inmutables las transacciones; RLS y `REVOKE` cierran el acceso directo.
 - **Montos en `NUMERIC(14,2)`** y con máximo 2 decimales en la entrada.
 
+**Evidencias (capturas de Swagger y PostgreSQL contra Supabase):** [`docs/evidencias/`](./docs/evidencias/README.md).
+
 ## Colección de Postman (Bloque 7)
 
 `postman/API_BOLSILLO.postman_collection.json` tiene 40 peticiones y 53 tests automáticos, en este orden: preparación (login, clientes A y B, titulares, cuentas) → movimientos de dinero (caso estrella incluido) → validaciones → seguridad (API Key, JWT, RBAC, BOLA) → integridad.
