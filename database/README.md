@@ -174,6 +174,8 @@ S01–S12 y C01–C09 se verificaron en **PostgreSQL 16 local (Docker)**, con un
 | C11 | Verificación en Supabase: 7 tablas, 7 RLS, 8 FK, 0 políticas, 0 grants, 2 triggers | Igual que local | ✅ Supabase |
 | C12 | Caso estrella en Supabase | Disponible 20.000 | ✅ Supabase |
 | C13 | `UPDATE` de transacción en Supabase | `23001` | ✅ Supabase |
+| C15 | Enforce SSL activado en Supabase | `db:probar` sigue conectando | ✅ Supabase |
+| C16 | Huella del certificado descargado del proyecto vs `certs/prod-ca-2021.crt` | Idénticas | ✅ |
 | C14 | Conexión *Direct* (`db.<ref>.supabase.co`) desde red sin IPv6 | `ENETUNREACH`: usar Session pooler | Observado |
 
 ## 10. Próximos pasos
