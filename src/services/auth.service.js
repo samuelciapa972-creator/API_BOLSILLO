@@ -1,5 +1,6 @@
 const {
-  consultar
+  consultar,
+  ejecutarTransaccion
 } = require(
   "../config/database"
 );
@@ -139,21 +140,26 @@ const crearUsuarioAdministrativo = async (
 
 // ========================================
 // Crear administrador inicial (bootstrap)
-// Resuelve "¿quién crea al primer
-// administrador?". Las credenciales vienen
-// de .env, nunca del código ni de los logs.
+// Solo lo invoca src/scripts/crearAdmin.js
+// (npm run seed:admin), nunca el arranque
+// HTTP. Las credenciales vienen de .env y
+// no se imprimen.
 //
-// Idempotente: si el email ya existe no se
-// crea otro ni se cambia su contraseña. ON
-// CONFLICT cubre dos instancias arrancando
-// a la vez.
+// - Si ya existe cualquier administrador
+//   (incluso inactivo) no inserta ni
+//   modifica nada.
+// - Si el email pertenece a otro rol no lo
+//   convierte en administrador.
+// - pg_advisory_xact_lock serializa dos
+//   ejecuciones simultáneas del bootstrap.
 // ========================================
 const crearAdministradorInicial = async () => {
   const nombre =
-    process.env.ADMIN_NOMBRE;
+    process.env.ADMIN_NOMBRE?.trim();
 
   const email =
-    process.env.ADMIN_EMAIL;
+    process.env.ADMIN_EMAIL?.trim()
+      .toLowerCase();
 
   const password =
     process.env.ADMIN_PASSWORD;
@@ -163,60 +169,89 @@ const crearAdministradorInicial = async () => {
     !email ||
     !password
   ) {
-    console.warn(
-      "Administrador inicial no configurado"
+    throw new Error(
+      "Faltan ADMIN_NOMBRE, ADMIN_EMAIL o ADMIN_PASSWORD"
     );
-
-    return null;
   }
 
-  const existente =
-    await obtenerUsuarioPorEmail(email);
-
-  if (existente) {
-    if (existente.rol !== "administrador") {
-      console.warn(
-        "ADMIN_EMAIL pertenece a un usuario sin rol administrador"
-      );
-    }
-
-    return existente;
+  if (password.length < 12) {
+    throw new Error(
+      "ADMIN_PASSWORD debe tener al menos 12 caracteres"
+    );
   }
 
+  // El hash se calcula fuera de la
+  // transacción para no retener el bloqueo
   const passwordHash =
     await generarPasswordHash(
       password
     );
 
-  await consultar(
-    `INSERT INTO public.usuarios_auth
-       (rol_id, nombre, email, password_hash)
-     SELECT r.id, $1, LOWER($2), $3
-     FROM public.roles r
-     WHERE r.nombre = 'administrador'
-     ON CONFLICT (LOWER(email)) DO NOTHING`,
-    [
-      nombre,
-      email,
-      passwordHash
-    ]
+  return ejecutarTransaccion(
+    async (cliente) => {
+      await cliente.query(
+        "SELECT pg_advisory_xact_lock($1, $2)",
+        [7505, 1]
+      );
+
+      const administradores =
+        await cliente.query(
+          `SELECT u.id
+           FROM public.usuarios_auth u
+           JOIN public.roles r ON r.id = u.rol_id
+           WHERE r.nombre = 'administrador'
+           LIMIT 1`
+        );
+
+      if (administradores.rowCount > 0) {
+        return {
+          creado: false,
+          motivo: "ADMINISTRADOR_EXISTENTE"
+        };
+      }
+
+      const correoExistente =
+        await cliente.query(
+          `SELECT id
+           FROM public.usuarios_auth
+           WHERE LOWER(email) = LOWER($1)`,
+          [email]
+        );
+
+      if (correoExistente.rowCount > 0) {
+        throw new Error(
+          "El correo de bootstrap ya pertenece a otro usuario. No se elevarán privilegios."
+        );
+      }
+
+      const resultado =
+        await cliente.query(
+          `INSERT INTO public.usuarios_auth
+             (rol_id, nombre, email, password_hash)
+           SELECT r.id, $1, $2, $3
+           FROM public.roles r
+           WHERE r.nombre = 'administrador'
+             AND r.activo
+           RETURNING id`,
+          [
+            nombre,
+            email,
+            passwordHash
+          ]
+        );
+
+      if (resultado.rowCount === 0) {
+        throw new Error(
+          "No existe un rol administrador activo"
+        );
+      }
+
+      return {
+        creado: true,
+        id: resultado.rows[0].id
+      };
+    }
   );
-
-  const administrador =
-    await obtenerUsuarioPorEmail(email);
-
-  if (!administrador) {
-    throw new Error(
-      "No se pudo crear el administrador inicial"
-    );
-  }
-
-  // No se imprime email, password ni hash
-  console.log(
-    "Administrador inicial creado"
-  );
-
-  return administrador;
 };
 
 // ========================================

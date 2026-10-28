@@ -171,8 +171,19 @@ const ejecutarTransaccion = async (
   }
 };
 
+// ========================================
+// Cerrar el pool
+// Para procesos independientes (scripts):
+// sin esto Node.js no termina mientras haya
+// conexiones abiertas
+// ========================================
+const cerrarPool = () => {
+  return pool.end();
+};
+
 module.exports = {
   pool,
   consultar,
-  ejecutarTransaccion
+  ejecutarTransaccion,
+  cerrarPool
 };
