@@ -164,11 +164,20 @@ if (
 // CORS
 // ========================================
 
-const allowedOrigin =
-  process.env.ALLOWED_ORIGIN;
+// Bloque 11: lista separada por comas en
+// ALLOWED_ORIGIN (p. ej. Swagger en :3000 y
+// la futura SPA React + Vite en :5173).
+// Un origen no listado no recibe encabezados
+// CORS (el navegador bloquea la respuesta).
+const origenesPermitidos = (
+  process.env.ALLOWED_ORIGIN || ""
+)
+  .split(",")
+  .map((origen) => origen.trim())
+  .filter(Boolean);
 
 if (
-  !allowedOrigin
+  origenesPermitidos.length === 0
 ) {
 
   console.warn(
@@ -181,15 +190,23 @@ app.use(
   cors({
 
     origin:
-      allowedOrigin ||
-      false,
+      origenesPermitidos.length > 0
+        ? origenesPermitidos
+        : false,
 
     methods: [
       "GET",
       "POST",
       "PUT",
       "PATCH",
-      "DELETE"
+      "DELETE",
+      "OPTIONS"
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-API-Key"
     ]
   })
 );
@@ -252,12 +269,67 @@ app.use(
 
 
 // ========================================
-// Autenticación mediante API Key
+// Bloque 11 - Clientes web y privados
+// - POST /api/auth/login: público (con
+//   validaciones y rate limit), para no
+//   exponer una API Key en React.
+// - Recursos y rutas de cuenta: JWT en sus
+//   routers (autenticarJWT + RBAC + BOLA).
+// - Resto (registro, restablecimientos,
+//   /api/seguridad/cliente...): API Key.
 // ========================================
+
+const recursosJWT = new Set([
+  "/usuarios",
+  "/cuentas",
+  "/transacciones",
+  "/bolsillos"
+]);
+
+const rutasAuthJWT = new Set([
+  "/auth/perfil",
+  "/auth/cambiar-password",
+  "/auth/recuperacion",
+  "/auth/codigos-recuperacion"
+]);
 
 app.use(
   "/api",
-  validarApiKey
+
+  (req, res, next) => {
+
+    if (
+      req.method === "POST" &&
+      req.path === "/auth/login"
+    ) {
+      return next();
+    }
+
+    const segmentos =
+      req.path.split("/");
+
+    if (
+      recursosJWT.has(
+        "/" + segmentos[1]
+      )
+    ) {
+      return next();
+    }
+
+    if (
+      rutasAuthJWT.has(
+        "/" + segmentos.slice(1, 3).join("/")
+      )
+    ) {
+      return next();
+    }
+
+    return validarApiKey(
+      req,
+      res,
+      next
+    );
+  }
 );
 
 
@@ -318,9 +390,8 @@ app.use(
 );
 
 
-// Registro e inicio de sesión de personas.
-// También exige API Key: primero se valida
-// la aplicación y luego el usuario.
+// Registro (API Key), login público y
+// rutas de cuenta/recuperación (Bloque 11).
 app.use(
   "/api/auth",
   authRoutes

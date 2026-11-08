@@ -1,5 +1,6 @@
 const {
-  body
+  body,
+  param
 } = require("express-validator");
 
 
@@ -127,8 +128,111 @@ const validarCreacionUsuarioAdministrativo = [
 ];
 
 
+// ========================================
+// Bloque 11 - Contraseñas y recuperación
+// ========================================
+
+// Nueva contraseña: 12-72 caracteres con
+// mayúscula, minúscula y número
+const reglaPasswordNueva = () =>
+  body("passwordNueva")
+    .isString()
+    .withMessage(
+      "La nueva contraseña debe ser texto"
+    )
+    .isLength({
+      min: 12,
+      max: 72
+    })
+    .withMessage(
+      "La nueva contraseña debe tener entre 12 y 72 caracteres"
+    )
+    .custom((valor) =>
+      /[a-z]/.test(valor) &&
+      /[A-Z]/.test(valor) &&
+      /[0-9]/.test(valor)
+    )
+    .withMessage(
+      "Incluya mayúscula, minúscula y número"
+    );
+
+const reglaConfirmacion = () =>
+  body("confirmarPassword")
+    .isString()
+    .custom((valor, { req }) =>
+      valor === req.body.passwordNueva
+    )
+    .withMessage(
+      "La confirmación no coincide"
+    );
+
+const reglaPasswordActual = () =>
+  body("passwordActual")
+    .isString()
+    .notEmpty()
+    .withMessage(
+      "La contraseña actual es obligatoria"
+    );
+
+const validarCambioPassword = [
+  reglaPasswordActual(),
+  reglaPasswordNueva(),
+  reglaConfirmacion()
+];
+
+const validarGenerarRecuperacion = [
+  param("usuarioId")
+    .isInt({
+      min: 1
+    })
+    .withMessage(
+      "ID de usuario inválido"
+    )
+    .toInt()
+];
+
+const validarRestablecimiento = [
+  body("token")
+    .isString()
+    .matches(/^[a-f0-9]{64}$/i)
+    .withMessage(
+      "Token inválido"
+    ),
+  reglaPasswordNueva(),
+  reglaConfirmacion()
+];
+
+const validarGenerarCodigos = [
+  reglaPasswordActual()
+];
+
+const validarRestablecerConCodigo = [
+  body("email")
+    .isEmail()
+    .withMessage(
+      "Correo inválido"
+    )
+    .normalizeEmail(
+      opcionesEmail
+    ),
+  body("codigo")
+    .isString()
+    .matches(/^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){7}$/)
+    .withMessage(
+      "Código inválido"
+    ),
+  reglaPasswordNueva(),
+  reglaConfirmacion()
+];
+
+
 module.exports = {
   validarRegistro,
   validarLogin,
-  validarCreacionUsuarioAdministrativo
+  validarCreacionUsuarioAdministrativo,
+  validarCambioPassword,
+  validarGenerarRecuperacion,
+  validarRestablecimiento,
+  validarGenerarCodigos,
+  validarRestablecerConCodigo
 };

@@ -190,8 +190,7 @@ const {
  *       Roles — administrador, auditor (solo lectura).
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -252,8 +251,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -326,8 +324,7 @@ router.get(
  *             $ref: '#/components/schemas/DepositoEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -390,8 +387,7 @@ router.post(
  *             $ref: '#/components/schemas/RetiroEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -457,8 +453,7 @@ router.post(
  *             $ref: '#/components/schemas/TransferenciaEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *

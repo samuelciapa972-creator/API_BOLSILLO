@@ -30,7 +30,7 @@ const autenticarJWT = async (req, res, next) => {
   // Validar formato Bearer
   // ----------------------------------------
   const partes =
-    authorization.split(" ");
+    authorization.trim().split(/\s+/);
 
   if (
     partes.length !== 2 ||
@@ -97,6 +97,20 @@ const autenticarJWT = async (req, res, next) => {
     if (!usuario.activo) {
       return res.status(403).json({
         mensaje: "Usuario deshabilitado"
+      });
+    }
+
+    // --------------------------------------
+    // Versión de sesión (Bloque 11)
+    // Rechaza los JWT emitidos antes de un
+    // cambio o restablecimiento de contraseña
+    // --------------------------------------
+    if (
+      !Number.isSafeInteger(payload.vs) ||
+      payload.vs !== usuario.versionSesion
+    ) {
+      return res.status(401).json({
+        mensaje: "Sesión revocada"
       });
     }
 

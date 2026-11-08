@@ -23,7 +23,8 @@ const COLUMNAS_USUARIO = `
   u.email,
   u.password_hash AS "passwordHash",
   r.nombre AS rol,
-  u.activo
+  u.activo,
+  u.version_sesion AS "versionSesion"
 `;
 
 // ========================================
@@ -286,11 +287,76 @@ const verificarCredenciales = async (
   return usuario;
 };
 
+// ========================================
+// Cambiar la contraseña propia (Bloque 11)
+// - Exige la contraseña actual.
+// - Guarda un hash bcrypt nuevo y aumenta
+//   version_sesion: los JWT anteriores
+//   quedan revocados.
+// - El UPDATE compara el hash leído
+//   (control optimista): si otro proceso la
+//   cambió entre medias, no se pisa.
+// ========================================
+const cambiarPasswordPropio = async (
+  usuarioId,
+  passwordActual,
+  passwordNueva
+) => {
+  const usuario =
+    await obtenerUsuarioPorId(usuarioId);
+
+  if (
+    !usuario ||
+    !usuario.activo ||
+    !usuario.passwordHash
+  ) {
+    return { estado: "NO_AUTORIZADO" };
+  }
+
+  if (
+    !(await verificarPassword(
+      passwordActual,
+      usuario.passwordHash
+    ))
+  ) {
+    return { estado: "CLAVE_INCORRECTA" };
+  }
+
+  if (
+    await verificarPassword(
+      passwordNueva,
+      usuario.passwordHash
+    )
+  ) {
+    return { estado: "MISMA_CLAVE" };
+  }
+
+  const nuevoHash =
+    await generarPasswordHash(passwordNueva);
+
+  const resultado =
+    await consultar(
+      `UPDATE public.usuarios_auth
+       SET password_hash = $1,
+           version_sesion = version_sesion + 1
+       WHERE id = $2
+         AND activo = TRUE
+         AND password_hash = $3
+       RETURNING id`,
+      [nuevoHash, usuarioId, usuario.passwordHash]
+    );
+
+  return resultado.rowCount === 1
+    ? { estado: "OK" }
+    : { estado: "CONFLICTO" };
+};
+
 module.exports = {
   obtenerUsuarioPorEmail,
   obtenerUsuarioPorId,
   crearUsuario,
   crearUsuarioAdministrativo,
   verificarCredenciales,
-  crearAdministradorInicial
+  crearAdministradorInicial,
+  cambiarPasswordPropio
 };

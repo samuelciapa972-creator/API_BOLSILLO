@@ -9,17 +9,18 @@ SELECT id, nombre, activo
 FROM public.roles
 ORDER BY id;
 
--- 2. Tablas (esperado: 7)
+-- 2. Tablas (esperado: 9 desde el Bloque 11)
 SELECT table_name
 FROM information_schema.tables
 WHERE table_schema = 'public'
   AND table_name IN (
     'roles', 'usuarios_auth', 'usuarios', 'cuentas',
-    'bolsillos', 'transacciones', 'api_keys'
+    'bolsillos', 'transacciones', 'api_keys',
+    'password_reset_tokens', 'codigos_recuperacion'
   )
 ORDER BY table_name;
 
--- 3. RLS (esperado: 7 filas en true)
+-- 3. RLS (esperado: 9 filas en true)
 SELECT
     relname AS tabla,
     relrowsecurity AS rls_habilitado
@@ -27,7 +28,8 @@ FROM pg_class
 WHERE relnamespace = 'public'::regnamespace
   AND relname IN (
     'roles', 'usuarios_auth', 'usuarios', 'cuentas',
-    'bolsillos', 'transacciones', 'api_keys'
+    'bolsillos', 'transacciones', 'api_keys',
+    'password_reset_tokens', 'codigos_recuperacion'
   )
 ORDER BY relname;
 
@@ -54,7 +56,8 @@ FROM information_schema.role_table_grants
 WHERE table_schema = 'public'
   AND table_name IN (
     'roles', 'usuarios_auth', 'usuarios', 'cuentas',
-    'bolsillos', 'transacciones', 'api_keys'
+    'bolsillos', 'transacciones', 'api_keys',
+    'password_reset_tokens', 'codigos_recuperacion'
   )
   AND grantee IN ('anon', 'authenticated')
 ORDER BY table_name, grantee, privilege_type;
@@ -91,4 +94,6 @@ UNION ALL SELECT 'usuarios', COUNT(*) FROM public.usuarios
 UNION ALL SELECT 'cuentas', COUNT(*) FROM public.cuentas
 UNION ALL SELECT 'bolsillos', COUNT(*) FROM public.bolsillos
 UNION ALL SELECT 'transacciones', COUNT(*) FROM public.transacciones
-UNION ALL SELECT 'api_keys', COUNT(*) FROM public.api_keys;
+UNION ALL SELECT 'api_keys', COUNT(*) FROM public.api_keys
+UNION ALL SELECT 'password_reset_tokens', COUNT(*) FROM public.password_reset_tokens
+UNION ALL SELECT 'codigos_recuperacion', COUNT(*) FROM public.codigos_recuperacion;
