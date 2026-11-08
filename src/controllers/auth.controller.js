@@ -200,7 +200,91 @@ const login = async (
 };
 
 
+// ========================================
+// Crear usuario privilegiado
+// Solo administrador (ver auth.routes.js)
+// ========================================
+
+const crearUsuarioAdministrativo = async (
+  req,
+  res,
+  next
+) => {
+
+  try {
+
+    // Solo nombre, email, password y rol
+    const datos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
+      );
+
+
+    // ------------------------------------
+    // Verificar email duplicado
+    // ------------------------------------
+    const usuarioExistente =
+      authService
+        .obtenerUsuarioPorEmail(
+          datos.email
+        );
+
+
+    if (
+      usuarioExistente
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "Ya existe un usuario con ese correo electrónico"
+        });
+    }
+
+
+    // ------------------------------------
+    // Crear usuario
+    // ------------------------------------
+    const usuario =
+      await authService
+        .crearUsuarioAdministrativo(
+          datos
+        );
+
+
+    // ------------------------------------
+    // Respuesta segura
+    // ------------------------------------
+    return res
+      .status(201)
+      .json({
+
+        mensaje:
+          "Usuario creado correctamente",
+
+        usuario: {
+          id: usuario.id,
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol,
+          activo: usuario.activo
+        }
+      });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
   registrar,
-  login
+  login,
+  crearUsuarioAdministrativo
 };

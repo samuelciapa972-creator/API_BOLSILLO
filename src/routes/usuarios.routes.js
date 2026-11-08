@@ -18,6 +18,20 @@ const validar = require(
   "../middlewares/validar.middleware"
 );
 
+const autenticarJWT = require(
+  "../middlewares/auth.middleware"
+);
+
+const autorizarRoles = require(
+  "../middlewares/roles.middleware"
+);
+
+const {
+  autorizarUsuarioPropio
+} = require(
+  "../middlewares/propiedad.middleware"
+);
+
 /**
  * @openapi
  * components:
@@ -30,6 +44,12 @@ const validar = require(
  *         id:
  *           type: integer
  *           example: 1
+ *
+ *         usuarioAuthId:
+ *           type: integer
+ *           nullable: true
+ *           description: Usuario de acceso (login con rol cliente) dueño de este titular
+ *           example: 2
  *
  *         nombre:
  *           type: string
@@ -63,6 +83,13 @@ const validar = require(
  *         - telefono
  *
  *       properties:
+ *
+ *         usuarioAuthId:
+ *           type: integer
+ *           nullable: true
+ *           minimum: 1
+ *           description: Asocia el titular con un usuario de acceso de rol cliente (1 a 1). Solo administrador.
+ *           example: 2
  *
  *         nombre:
  *           type: string
@@ -103,7 +130,20 @@ const validar = require(
  *     summary:
  *       Obtener todos los usuarios
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura).
+ *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -120,6 +160,14 @@ const validar = require(
  */
 router.get(
   "/",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor"
+  ),
+
   usuariosController.obtenerUsuarios
 );
 
@@ -134,6 +182,9 @@ router.get(
  *     summary:
  *       Obtener usuario por ID
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo su propio titular.
+ *
  *     parameters:
  *
  *       - in: path
@@ -144,7 +195,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -167,9 +228,19 @@ router.get(
 router.get(
   "/:id",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdUsuario,
 
   validar,
+
+  autorizarUsuarioPropio,
 
   usuariosController.obtenerUsuarioPorId
 );
@@ -185,6 +256,9 @@ router.get(
  *     summary:
  *       Obtener las cuentas de un usuario
  *
+ *     description:
+ *       Roles — administrador, auditor (solo lectura), cliente. Propiedad del recurso (BOLA/IDOR) — el cliente solo su propio titular.
+ *
  *     parameters:
  *
  *       - in: path
@@ -195,7 +269,17 @@ router.get(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -221,9 +305,19 @@ router.get(
 router.get(
   "/:id/cuentas",
 
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador",
+    "auditor",
+    "cliente"
+  ),
+
   validarIdUsuario,
 
   validar,
+
+  autorizarUsuarioPropio,
 
   usuariosController.obtenerCuentasDeUsuario
 );
@@ -239,6 +333,9 @@ router.get(
  *     summary:
  *       Crear un usuario
  *
+ *     description:
+ *       Roles — administrador.
+ *
  *     requestBody:
  *       required: true
  *
@@ -248,7 +345,17 @@ router.get(
  *           schema:
  *             $ref: '#/components/schemas/UsuarioEntrada'
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       201:
  *         description:
@@ -264,6 +371,12 @@ router.get(
  */
 router.post(
   "/",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
 
   validarCreacionUsuario,
 
@@ -282,6 +395,9 @@ router.post(
  *
  *     summary:
  *       Actualizar completamente un usuario
+ *
+ *     description:
+ *       Roles — administrador.
  *
  *     parameters:
  *
@@ -304,7 +420,17 @@ router.post(
  *               - $ref: '#/components/schemas/UsuarioEntrada'
  *               - required: [estado]
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -324,6 +450,12 @@ router.post(
  */
 router.put(
   "/:id",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
 
   validarIdUsuario,
 
@@ -345,6 +477,9 @@ router.put(
  *     summary:
  *       Eliminar usuario
  *
+ *     description:
+ *       Roles — administrador.
+ *
  *     parameters:
  *
  *       - in: path
@@ -355,7 +490,17 @@ router.put(
  *           type: integer
  *           minimum: 1
  *
+ *     security:
+ *       - ApiKeyAuth: []
+ *         BearerAuth: []
+ *
  *     responses:
+ *
+ *       401:
+ *         $ref: '#/components/responses/NoAutenticado'
+ *
+ *       403:
+ *         $ref: '#/components/responses/SinPermisos'
  *
  *       200:
  *         description:
@@ -375,6 +520,12 @@ router.put(
  */
 router.delete(
   "/:id",
+
+  autenticarJWT,
+
+  autorizarRoles(
+    "administrador"
+  ),
 
   validarIdUsuario,
 

@@ -4,9 +4,14 @@
 // Son distintos de los "usuarios" de la
 // billetera (src/data/usuarios.js).
 //
-// Inicia vacío: el primer usuario se crea
-// mediante POST /api/auth/registro. Nunca
-// se guardan contraseñas en texto plano.
+// Inicia vacío: al arrancar, el bootstrap
+// crea el administrador inicial desde .env.
+// Los clientes se crean con
+// POST /api/auth/registro y los auditores
+// o administradores con POST
+// /api/auth/usuarios (solo administrador).
+// Nunca se guardan contraseñas en texto
+// plano.
 // ========================================
 
 const usuariosAuth = [];

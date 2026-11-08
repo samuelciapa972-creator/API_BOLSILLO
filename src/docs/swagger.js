@@ -69,6 +69,21 @@ const options = {
           description:
             "JWT obtenido mediante el endpoint de login."
         }
+      },
+
+      responses: {
+
+        NoAutenticado: {
+
+          description:
+            "Credenciales de autenticación ausentes o inválidas (sin JWT, JWT alterado o expirado)"
+        },
+
+        SinPermisos: {
+
+          description:
+            "Usuario autenticado sin permisos sobre la operación o sobre este recurso concreto"
+        }
       }
     },
 
@@ -127,7 +142,7 @@ const options = {
           "Autenticación",
 
         description:
-          "Registro, inicio de sesión (JWT) y perfil del usuario autenticado"
+          "Registro, inicio de sesión (JWT), perfil y gestión administrativa de usuarios de acceso"
       }
 
     ]
@@ -147,4 +162,4 @@ const swaggerSpec =
 
 
 module.exports =
-  swaggerSpec;
+  swaggerSpec;

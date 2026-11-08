@@ -22,6 +22,21 @@ const obtenerUsuarioPorId = (
   );
 };
 
+// ========================================
+// Obtener titular por usuario de login
+// Relaciona el JWT (sub = usuarioAuth.id)
+// con el titular de la billetera
+// ========================================
+const obtenerUsuarioPorUsuarioAuthId = (
+  usuarioAuthId
+) => {
+  return usuarios.find(
+    usuario =>
+      usuario.usuarioAuthId ===
+      Number(usuarioAuthId)
+  );
+};
+
 const buscarUsuarioPorDocumento = (
   documento
 ) => {
@@ -53,6 +68,9 @@ const crearUsuario = (
   const usuario = {
     id:
       nuevoId,
+
+    usuarioAuthId:
+      datos.usuarioAuthId ?? null,
 
     nombre:
       datos.nombre,
@@ -96,6 +114,13 @@ const actualizarUsuario = (
   usuarios[indice] = {
     id:
       usuarios[indice].id,
+
+    // Si no se envía, se conserva la
+    // asociación actual con el login
+    usuarioAuthId:
+      datos.usuarioAuthId !== undefined
+        ? datos.usuarioAuthId
+        : usuarios[indice].usuarioAuthId,
 
     nombre:
       datos.nombre,
@@ -144,6 +169,7 @@ const eliminarUsuario = (
 module.exports = {
   obtenerUsuarios,
   obtenerUsuarioPorId,
+  obtenerUsuarioPorUsuarioAuthId,
   buscarUsuarioPorDocumento,
   buscarUsuarioPorEmail,
   crearUsuario,
