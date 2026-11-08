@@ -102,12 +102,6 @@ const validarApiKey =
 // Servicios
 // ========================================
 
-const authService =
-  require(
-    "./services/auth.service"
-  );
-
-
 const apiKeysService =
   require(
     "./services/apiKeys.service"
@@ -388,7 +382,9 @@ app.use(
 // ========================================
 // Iniciar servidor
 // Configurar → inicializar datos → si todo
-// está bien, abrir el puerto (fail-fast)
+// está bien, abrir el puerto (fail-fast).
+// El primer administrador NO se crea aquí:
+// npm run seed:admin (Bloque 7.5.1)
 // ========================================
 
 const iniciarServidor =
@@ -399,11 +395,6 @@ const iniciarServidor =
       // API Keys de .env → public.api_keys
       await apiKeysService
         .sincronizarApiKeys();
-
-
-      // Bootstrap del primer administrador
-      await authService
-        .crearAdministradorInicial();
 
 
       app.listen(

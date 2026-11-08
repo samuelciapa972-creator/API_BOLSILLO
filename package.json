@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "db:probar": "node scripts/probar-conexion.js"
+    "db:probar": "node scripts/probar-conexion.js",
+    "seed:admin": "node src/scripts/crearAdmin.js"
   },
   "license": "ISC",
   "dependencies": {
