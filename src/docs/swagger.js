@@ -88,11 +88,11 @@ const options = {
     },
 
 
-    security: [
-      {
-        ApiKeyAuth: []
-      }
-    ],
+    // Bloque 11: cada operación declara su
+    // seguridad real (login sin credencial,
+    // recursos con BearerAuth, integraciones
+    // privadas con ApiKeyAuth)
+    security: [],
 
 
     tags: [

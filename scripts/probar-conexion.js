@@ -11,6 +11,26 @@ async function probarConexion() {
   try {
     console.log("Conectando con Supabase...");
 
+    // ======================================
+    // LAB 11.5 - RLS05
+    // Identidad real del pg.Pool del backend
+    // (no la del SQL Editor): si puede omitir
+    // RLS, el aislamiento lo dan JWT, RBAC y
+    // BOLA/IDOR de Express.
+    // ======================================
+    const seguridad = await consultar(`
+      SELECT
+        current_user AS usuario,
+        session_user AS sesion,
+        current_setting('row_security') AS rls_configuracion,
+        rolbypassrls AS puede_omitir_rls
+      FROM pg_roles
+      WHERE rolname = current_user
+    `);
+
+    console.log("LAB 11.5 - Seguridad PostgreSQL:");
+    console.table(seguridad.rows);
+
     const resultado = await consultar(`
       SELECT
         current_database() AS base_datos,
@@ -36,6 +56,8 @@ async function probarConexion() {
       UNION ALL SELECT 'bolsillos', COUNT(*) FROM public.bolsillos
       UNION ALL SELECT 'transacciones', COUNT(*) FROM public.transacciones
       UNION ALL SELECT 'api_keys', COUNT(*) FROM public.api_keys
+      UNION ALL SELECT 'password_reset_tokens', COUNT(*) FROM public.password_reset_tokens
+      UNION ALL SELECT 'codigos_recuperacion', COUNT(*) FROM public.codigos_recuperacion
     `);
 
     console.log("Inventario de tablas:");

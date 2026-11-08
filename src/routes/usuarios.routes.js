@@ -134,8 +134,7 @@ const {
  *       Roles — administrador, auditor (solo lectura).
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -196,8 +195,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -270,8 +268,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -346,8 +343,7 @@ router.get(
  *             $ref: '#/components/schemas/UsuarioEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -421,8 +417,7 @@ router.post(
  *               - required: [estado]
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -491,8 +486,7 @@ router.put(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *

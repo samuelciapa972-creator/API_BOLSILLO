@@ -179,8 +179,7 @@ const {
  *       Roles — administrador, auditor (solo lectura).
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -241,8 +240,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -315,8 +313,7 @@ router.get(
  *             $ref: '#/components/schemas/BolsilloEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -392,8 +389,7 @@ router.post(
  *             $ref: '#/components/schemas/BolsilloActualizacionEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -466,8 +462,7 @@ router.put(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -547,8 +542,7 @@ router.delete(
  *             $ref: '#/components/schemas/MontoBolsilloEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -630,8 +624,7 @@ router.post(
  *             $ref: '#/components/schemas/MontoBolsilloEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -713,8 +706,7 @@ router.post(
  *             $ref: '#/components/schemas/EstadoBolsilloEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *

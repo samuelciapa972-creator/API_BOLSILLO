@@ -136,8 +136,7 @@ const {
  *       Roles — administrador, auditor (solo lectura).
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -188,8 +187,7 @@ router.get(
  *       Roles — cliente. La identidad se deriva del JWT, no de un ID en la URL.
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -250,8 +248,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -324,8 +321,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -398,8 +394,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -475,8 +470,7 @@ router.get(
  *           minimum: 1
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -552,8 +546,7 @@ router.get(
  *             $ref: '#/components/schemas/CuentaEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *
@@ -628,8 +621,7 @@ router.post(
  *             $ref: '#/components/schemas/EstadoCuentaEntrada'
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     responses:
  *

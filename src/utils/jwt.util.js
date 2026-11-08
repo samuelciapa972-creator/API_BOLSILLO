@@ -36,9 +36,14 @@ const generarToken = (usuario) => {
     expiresIn
   } = obtenerConfiguracionJWT();
 
+  // vs = versión de sesión (Bloque 11):
+  // al cambiar o restablecer la contraseña
+  // aumenta en la base de datos y los JWT
+  // emitidos antes dejan de ser válidos
   const payload = {
     email: usuario.email,
-    rol: usuario.rol
+    rol: usuario.rol,
+    vs: usuario.versionSesion
   };
 
   return jwt.sign(
