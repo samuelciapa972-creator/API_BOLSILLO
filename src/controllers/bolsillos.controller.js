@@ -9,19 +9,10 @@ const bolsillosService =
   );
 
 
-const cuentasService =
-  require(
-    "../services/cuentas.service"
-  );
-
-
 const transaccionesService =
   require(
     "../services/transacciones.service"
   );
-
-
-const MAXIMO_BOLSILLOS_POR_CUENTA = 10;
 
 
 // ========================================
@@ -44,21 +35,28 @@ const transicionesPermitidas = {
 // GET todos
 // ========================================
 
-const obtenerBolsillos = (
+const obtenerBolsillos = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const bolsillos =
-    bolsillosService
-      .obtenerBolsillos();
+  try {
+
+    const bolsillos =
+      await bolsillosService
+        .obtenerBolsillos();
 
 
-  res
-    .status(200)
-    .json(
-      bolsillos
-    );
+    res
+      .status(200)
+      .json(
+        bolsillos
+      );
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 
@@ -66,41 +64,48 @@ const obtenerBolsillos = (
 // GET por ID
 // ========================================
 
-const obtenerBolsilloPorId = (
+const obtenerBolsilloPorId = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const bolsillo =
-    bolsillosService
-      .obtenerBolsilloPorId(
-        id
+    const bolsillo =
+      await bolsillosService
+        .obtenerBolsilloPorId(
+          id
+        );
+
+
+    if (
+      !bolsillo
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Bolsillo no encontrado"
+        });
+    }
+
+
+    res
+      .status(200)
+      .json(
+        bolsillo
       );
 
-
-  if (
-    !bolsillo
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Bolsillo no encontrado"
-      });
+  } catch (error) {
+    next(error);
   }
-
-
-  res
-    .status(200)
-    .json(
-      bolsillo
-    );
 };
 
 
@@ -108,117 +113,50 @@ const obtenerBolsilloPorId = (
 // POST
 // Regla 6: la cuenta debe estar activa
 // Regla 10: nombre único, máximo 10 por
-// cuenta
+// cuenta (en el service, con la cuenta
+// bloqueada)
 // ========================================
 
-const crearBolsillo = (
+const crearBolsillo = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
+  try {
 
-
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        datosPermitidos.cuentaId
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !cuenta
-  ) {
+    const bolsilloCreado =
+      await bolsillosService
+        .crearBolsillo(
+          datosPermitidos
+        );
 
-    return res
-      .status(400)
+
+    res
+      .status(201)
       .json({
+
         mensaje:
-          "La cuenta indicada no existe"
+          "Bolsillo creado correctamente",
+
+        bolsillo:
+          bolsilloCreado
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  if (
-    cuenta.estado !== "activa"
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se pueden crear bolsillos en una cuenta que no está activa"
-      });
-  }
-
-
-  const nombreExistente =
-    bolsillosService
-      .buscarBolsilloPorNombreYCuenta(
-        datosPermitidos.nombre,
-        datosPermitidos.cuentaId
-      );
-
-
-  if (
-    nombreExistente
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "Ya existe un bolsillo con ese nombre en la cuenta"
-      });
-  }
-
-
-  const totalBolsillos =
-    bolsillosService
-      .contarBolsillosPorCuenta(
-        datosPermitidos.cuentaId
-      );
-
-
-  if (
-    totalBolsillos >=
-      MAXIMO_BOLSILLOS_POR_CUENTA
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "La cuenta ya tiene el máximo de 10 bolsillos permitidos"
-      });
-  }
-
-
-  const bolsilloCreado =
-    bolsillosService
-      .crearBolsillo(
-        datosPermitidos
-      );
-
-
-  res
-    .status(201)
-    .json({
-
-      mensaje:
-        "Bolsillo creado correctamente",
-
-      bolsillo:
-        bolsilloCreado
-    });
 };
 
 
@@ -227,88 +165,95 @@ const crearBolsillo = (
 // cuentaId no es editable
 // ========================================
 
-const actualizarBolsillo = (
+const actualizarBolsillo = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
-
-
-  const bolsilloActual =
-    bolsillosService
-      .obtenerBolsilloPorId(
-        id
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !bolsilloActual
-  ) {
+    const bolsilloActual =
+      await bolsillosService
+        .obtenerBolsilloPorId(
+          id
+        );
 
-    return res
-      .status(404)
+
+    if (
+      !bolsilloActual
+    ) {
+
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Bolsillo no encontrado"
+        });
+    }
+
+
+    const nombreExistente =
+      await bolsillosService
+        .buscarBolsilloPorNombreYCuenta(
+          datosPermitidos.nombre,
+          bolsilloActual.cuentaId
+        );
+
+
+    if (
+      nombreExistente &&
+      nombreExistente.id !==
+        Number(id)
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "Ya existe un bolsillo con ese nombre en la cuenta"
+        });
+    }
+
+
+    const bolsilloActualizado =
+      await bolsillosService
+        .actualizarBolsillo(
+          id,
+          datosPermitidos
+        );
+
+
+    res
+      .status(200)
       .json({
+
         mensaje:
-          "Bolsillo no encontrado"
+          "Bolsillo actualizado correctamente",
+
+        bolsillo:
+          bolsilloActualizado
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  const nombreExistente =
-    bolsillosService
-      .buscarBolsilloPorNombreYCuenta(
-        datosPermitidos.nombre,
-        bolsilloActual.cuentaId
-      );
-
-
-  if (
-    nombreExistente &&
-    nombreExistente.id !==
-      Number(id)
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "Ya existe un bolsillo con ese nombre en la cuenta"
-      });
-  }
-
-
-  const bolsilloActualizado =
-    bolsillosService
-      .actualizarBolsillo(
-        id,
-        datosPermitidos
-      );
-
-
-  res
-    .status(200)
-    .json({
-
-      mensaje:
-        "Bolsillo actualizado correctamente",
-
-      bolsillo:
-        bolsilloActualizado
-    });
 };
 
 
@@ -317,234 +262,155 @@ const actualizarBolsillo = (
 // Regla 8: no se puede eliminar un
 // bolsillo con saldo
 // Integridad referencial: tampoco si tiene
-// transacciones asociadas (evita huérfanos)
+// transacciones asociadas (la FK lo impide
+// igualmente)
 // ========================================
 
-const eliminarBolsillo = (
+const eliminarBolsillo = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const bolsilloActual =
-    bolsillosService
-      .obtenerBolsilloPorId(
-        id
-      );
+    const bolsilloActual =
+      await bolsillosService
+        .obtenerBolsilloPorId(
+          id
+        );
 
 
-  if (
-    !bolsilloActual
-  ) {
+    if (
+      !bolsilloActual
+    ) {
 
-    return res
-      .status(404)
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Bolsillo no encontrado"
+        });
+    }
+
+
+    if (
+      bolsilloActual.saldo > 0
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede eliminar un bolsillo con saldo, primero debe devolverse el dinero"
+        });
+    }
+
+
+    const tieneTransacciones =
+      await transaccionesService
+        .bolsilloTieneTransacciones(
+          id
+        );
+
+
+    if (
+      tieneTransacciones
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede eliminar el bolsillo porque tiene transacciones asociadas"
+        });
+    }
+
+
+    const bolsilloEliminado =
+      await bolsillosService
+        .eliminarBolsillo(
+          id
+        );
+
+
+    res
+      .status(200)
       .json({
+
         mensaje:
-          "Bolsillo no encontrado"
+          "Bolsillo eliminado correctamente",
+
+        bolsillo:
+          bolsilloEliminado
       });
+
+  } catch (error) {
+    next(error);
   }
-
-
-  if (
-    bolsilloActual.saldo > 0
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede eliminar un bolsillo con saldo, primero debe devolverse el dinero"
-      });
-  }
-
-
-  const tieneTransacciones =
-    transaccionesService
-      .bolsilloTieneTransacciones(
-        id
-      );
-
-
-  if (
-    tieneTransacciones
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede eliminar el bolsillo porque tiene transacciones asociadas"
-      });
-  }
-
-
-  const bolsilloEliminado =
-    bolsillosService
-      .eliminarBolsillo(
-        id
-      );
-
-
-  res
-    .status(200)
-    .json({
-
-      mensaje:
-        "Bolsillo eliminado correctamente",
-
-      bolsillo:
-        bolsilloEliminado
-    });
 };
 
 
 // ========================================
 // POST /:id/apartar
 // Regla 3: se valida contra el disponible
+// (en el service, con la cuenta bloqueada)
 // ========================================
 
-const apartarEnBolsillo = (
+const apartarEnBolsillo = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
-
-
-  const bolsilloActual =
-    bolsillosService
-      .obtenerBolsilloPorId(
-        id
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !bolsilloActual
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Bolsillo no encontrado"
-      });
-  }
-
-
-  if (
-    bolsilloActual.estado !== "activo"
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede apartar dinero en un bolsillo archivado"
-      });
-  }
-
-
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        bolsilloActual.cuentaId
-      );
-
-
-  if (
-    !cuenta ||
-    cuenta.estado !== "activa"
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se pueden operar bolsillos de una cuenta que no está activa"
-      });
-  }
-
-
-  const saldoDisponible =
-    cuentasService
-      .calcularSaldoDisponible(
-        cuenta.id
-      );
-
-
-  if (
-    saldoDisponible <
-      datosPermitidos.monto
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "El saldo disponible de la cuenta no alcanza para apartar ese monto"
-      });
-  }
-
-
-  const bolsilloActualizado =
-    bolsillosService
+    const {
+      bolsillo,
+      transaccion
+    } = await bolsillosService
       .apartarEnBolsillo(
         id,
-        datosPermitidos.monto
+        datosPermitidos
       );
 
 
-  const transaccionCreada =
-    transaccionesService
-      .crearTransaccion({
+    res
+      .status(201)
+      .json({
 
-        tipo: "apartado",
+        mensaje:
+          "Dinero apartado correctamente",
 
-        cuentaOrigenId:
-          cuenta.id,
+        bolsillo,
 
-        bolsilloId:
-          bolsilloActualizado.id,
-
-        monto:
-          datosPermitidos.monto,
-
-        descripcion:
-          datosPermitidos.descripcion
+        transaccion
       });
 
-
-  res
-    .status(201)
-    .json({
-
-      mensaje:
-        "Dinero apartado correctamente",
-
-      bolsillo:
-        bolsilloActualizado,
-
-      transaccion:
-        transaccionCreada
-    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 
@@ -554,232 +420,173 @@ const apartarEnBolsillo = (
 // que el bolsillo contiene
 // ========================================
 
-const devolverDeBolsillo = (
+const devolverDeBolsillo = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
-
-
-  const bolsilloActual =
-    bolsillosService
-      .obtenerBolsilloPorId(
-        id
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !bolsilloActual
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Bolsillo no encontrado"
-      });
-  }
-
-
-  if (
-    datosPermitidos.monto >
-      bolsilloActual.saldo
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede devolver más de lo que el bolsillo contiene"
-      });
-  }
-
-
-  const cuenta =
-    cuentasService
-      .obtenerCuentaPorId(
-        bolsilloActual.cuentaId
-      );
-
-
-  if (
-    !cuenta ||
-    cuenta.estado !== "activa"
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se pueden operar bolsillos de una cuenta que no está activa"
-      });
-  }
-
-
-  const bolsilloActualizado =
-    bolsillosService
+    const {
+      bolsillo,
+      transaccion
+    } = await bolsillosService
       .devolverDeBolsillo(
         id,
-        datosPermitidos.monto
+        datosPermitidos
       );
 
 
-  const transaccionCreada =
-    transaccionesService
-      .crearTransaccion({
+    res
+      .status(201)
+      .json({
 
-        tipo: "devolucion",
+        mensaje:
+          "Dinero devuelto correctamente",
 
-        cuentaDestinoId:
-          cuenta.id,
+        bolsillo,
 
-        bolsilloId:
-          bolsilloActualizado.id,
-
-        monto:
-          datosPermitidos.monto,
-
-        descripcion:
-          datosPermitidos.descripcion
+        transaccion
       });
 
-
-  res
-    .status(201)
-    .json({
-
-      mensaje:
-        "Dinero devuelto correctamente",
-
-      bolsillo:
-        bolsilloActualizado,
-
-      transaccion:
-        transaccionCreada
-    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 
 // ========================================
 // PATCH /:id/estado
 // Regla: archivado es terminal y exige
-// saldo en 0
+// saldo en 0 (el CHECK de la base de datos
+// lo garantiza aunque se aparte dinero
+// entre la validación y el UPDATE)
 // ========================================
 
-const actualizarEstadoBolsillo = (
+const actualizarEstadoBolsillo = async (
   req,
-  res
+  res,
+  next
 ) => {
 
-  const {
-    id
-  } = req.params;
+  try {
+
+    const {
+      id
+    } = req.params;
 
 
-  const datosPermitidos =
-    matchedData(
-      req,
-      {
-        locations: [
-          "body"
-        ]
-      }
-    );
-
-
-  const bolsilloActual =
-    bolsillosService
-      .obtenerBolsilloPorId(
-        id
+    const datosPermitidos =
+      matchedData(
+        req,
+        {
+          locations: [
+            "body"
+          ]
+        }
       );
 
 
-  if (
-    !bolsilloActual
-  ) {
-
-    return res
-      .status(404)
-      .json({
-        mensaje:
-          "Bolsillo no encontrado"
-      });
-  }
+    const bolsilloActual =
+      await bolsillosService
+        .obtenerBolsilloPorId(
+          id
+        );
 
 
-  const nuevoEstado =
-    datosPermitidos.estado;
+    if (
+      !bolsilloActual
+    ) {
 
-  const estadoActual =
-    bolsilloActual.estado;
-
-  const permitidos =
-    transicionesPermitidas[
-      estadoActual
-    ];
-
-
-  if (
-    !permitidos.includes(
-      nuevoEstado
-    )
-  ) {
-
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          `No se permite cambiar un bolsillo de ${estadoActual} a ${nuevoEstado}`
-      });
-  }
+      return res
+        .status(404)
+        .json({
+          mensaje:
+            "Bolsillo no encontrado"
+        });
+    }
 
 
-  if (
-    nuevoEstado === "archivado" &&
-    bolsilloActual.saldo > 0
-  ) {
+    const nuevoEstado =
+      datosPermitidos.estado;
 
-    return res
-      .status(409)
-      .json({
-        mensaje:
-          "No se puede archivar un bolsillo con saldo, primero debe devolverse el dinero"
-      });
-  }
+    const estadoActual =
+      bolsilloActual.estado;
+
+    const permitidos =
+      transicionesPermitidas[
+        estadoActual
+      ];
 
 
-  const bolsilloActualizado =
-    bolsillosService
-      .actualizarEstadoBolsillo(
-        id,
+    if (
+      !permitidos.includes(
         nuevoEstado
-      );
+      )
+    ) {
+
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            `No se permite cambiar un bolsillo de ${estadoActual} a ${nuevoEstado}`
+        });
+    }
 
 
-  res
-    .status(200)
-    .json({
+    if (
+      nuevoEstado === "archivado" &&
+      bolsilloActual.saldo > 0
+    ) {
 
-      mensaje:
-        "Estado del bolsillo actualizado correctamente",
+      return res
+        .status(409)
+        .json({
+          mensaje:
+            "No se puede archivar un bolsillo con saldo, primero debe devolverse el dinero"
+        });
+    }
 
-      bolsillo:
-        bolsilloActualizado
-    });
+
+    const bolsilloActualizado =
+      await bolsillosService
+        .actualizarEstadoBolsillo(
+          id,
+          nuevoEstado
+        );
+
+
+    res
+      .status(200)
+      .json({
+
+        mensaje:
+          "Estado del bolsillo actualizado correctamente",
+
+        bolsillo:
+          bolsilloActualizado
+      });
+
+  } catch (error) {
+    next(error);
+  }
 };
 
 

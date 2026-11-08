@@ -18,38 +18,38 @@ if (clavesConfiguradas.some((clave) => !clave)) {
 }
 
 // ========================================
-// API Keys registradas
-// Simula la futura tabla api_keys de
-// Supabase/PostgreSQL. Nunca se guarda la
-// API Key original, solo su hash.
+// Semilla de API Keys
+// Ya no es la fuente de datos: al arrancar,
+// apiKeys.service.js la sincroniza con la
+// tabla public.api_keys. Nunca se guarda
+// la API Key original, solo su hash.
+//
+// "activa" solo se usa al insertar un
+// cliente nuevo: después manda el valor de
+// la tabla (se puede deshabilitar una key
+// sin tocar el código).
 // ========================================
 const apiKeys = [
   {
-    id: 1,
     cliente: "Postman Laboratorio",
     hash: generarHash(
       process.env.API_KEY_POSTMAN
     ),
-    activa: true,
-    creadaEn: "2026-09-15"
+    activa: true
   },
   {
-    id: 2,
     cliente: "Aplicación Administrativa",
     hash: generarHash(
       process.env.API_KEY_ADMIN
     ),
-    activa: true,
-    creadaEn: "2026-09-15"
+    activa: true
   },
   {
-    id: 3,
     cliente: "Aplicación Móvil",
     hash: generarHash(
       process.env.API_KEY_MOVIL
     ),
-    activa: false,
-    creadaEn: "2026-09-15"
+    activa: false
   }
 ];
 

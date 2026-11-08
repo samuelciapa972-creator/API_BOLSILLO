@@ -66,6 +66,13 @@ const camposBasicos = [
     .withMessage(
       "El correo electrónico no es válido"
     )
+    // Mismo límite que usuarios.email
+    .isLength({
+      max: 150
+    })
+    .withMessage(
+      "El correo electrónico no puede superar 150 caracteres"
+    )
     .normalizeEmail({
       gmail_remove_dots: false,
       gmail_remove_subaddress: false,

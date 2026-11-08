@@ -8,7 +8,7 @@ const {
 // se resuelve contra su hash almacenado y
 // nunca se compara en texto plano.
 // ========================================
-const validarApiKey = (req, res, next) => {
+const validarApiKey = async (req, res, next) => {
   // Express normaliza los nombres de headers.
   const apiKeyRecibida = req.get("X-API-Key");
 
@@ -22,11 +22,17 @@ const validarApiKey = (req, res, next) => {
   }
 
   // ----------------------------------------
-  // Buscar cliente
+  // Buscar cliente (public.api_keys)
   // ----------------------------------------
-  const cliente = buscarClientePorApiKey(
-    apiKeyRecibida
-  );
+  let cliente;
+
+  try {
+    cliente = await buscarClientePorApiKey(
+      apiKeyRecibida
+    );
+  } catch (error) {
+    return next(error);
+  }
 
   if (!cliente) {
     return res.status(401).json({

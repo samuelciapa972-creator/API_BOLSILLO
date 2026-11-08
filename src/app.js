@@ -108,6 +108,12 @@ const authService =
   );
 
 
+const apiKeysService =
+  require(
+    "./services/apiKeys.service"
+  );
+
+
 // ========================================
 // Aplicación
 // ========================================
@@ -389,6 +395,11 @@ const iniciarServidor =
   async () => {
 
     try {
+
+      // API Keys de .env → public.api_keys
+      await apiKeysService
+        .sincronizarApiKeys();
+
 
       // Bootstrap del primer administrador
       await authService

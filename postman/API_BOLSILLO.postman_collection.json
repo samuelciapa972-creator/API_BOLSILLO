@@ -1,254 +1,509 @@
 {
   "info": {
-    "name": "API Bolsillo — Lab 5 Parte 1 (Integridad referencial + API Keys)",
-    "description": "Colección de evidencias para el checkpoint del Bloque 1 (integridad referencial), Bloque 2 (pruebas manuales de lógica de negocio) y Bloque 3 (API Key). Ejecuta las carpetas EN ORDEN. Antes de la carpeta 'Bloque 2', reinicia el servidor (Ctrl+C y `npm run dev`) para volver a la data semilla, porque la carpeta 1 modifica el saldo del bolsillo 1.",
+    "name": "API Bolsillo — Bloque 7 (PostgreSQL)",
+    "description": "Flujo completo contra la API persistente: autenticación, titulares, cuentas, movimientos atómicos, bolsillos, validaciones, RBAC/BOLA e integridad.\n\nCada corrida crea sus propios clientes, titulares y cuentas con datos únicos y no toca los datos semilla. Las transacciones son inmutables: cada corrida deja su rastro en el libro contable, así que se recomienda ejecutarla contra una base de laboratorio.\n\nRequiere en el environment: baseUrl, apiKey, adminEmail, adminPassword. Ejecutar en orden (Run collection).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "apikey",
     "apikey": [
-      { "key": "key", "value": "X-API-Key", "type": "string" },
-      { "key": "value", "value": "{{apiKey}}", "type": "string" },
-      { "key": "in", "value": "header", "type": "string" }
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
     ]
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Datos únicos por corrida: la base de datos es persistente y",
+          "// documento/email son únicos. Se generan una vez por ejecución.",
+          "if (!pm.collectionVariables.get(\"ts\") || pm.info.requestName === \"Ruta principal (sin API Key)\") {",
+          "  const ts = String(Date.now());",
+          "  pm.collectionVariables.set(\"ts\", ts);",
+          "  pm.collectionVariables.set(\"documentoA\", ts.slice(-10));",
+          "  pm.collectionVariables.set(\"documentoB\", String(Number(ts.slice(-10)) + 1).padStart(10, \"0\"));",
+          "}",
+          "// Los ids guardados se envían como números, no como texto",
+          "if (pm.request.body && pm.request.body.raw) {",
+          "  pm.request.body.raw = pm.request.body.raw.replace(/\"\\{\\{(loginA|loginB|titularA|titularB|cuentaA|cuentaB)\\}\\}\"/g,",
+          "    (m, v) => pm.collectionVariables.get(v));",
+          "}"
+        ]
+      }
+    }
+  ],
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
   ],
   "item": [
     {
-      "name": "Bloque 1 - Integridad referencial",
-      "description": "Usa la data semilla original (usuario 1 con cuenta 1; bolsillo 1 con saldo 80000). Ejecuta en orden, de arriba hacia abajo.",
+      "name": "1. Preparación",
       "item": [
         {
-          "name": "1.1 DELETE usuario con cuenta -> 409",
+          "name": "Ruta principal (sin API Key)",
           "request": {
-            "method": "DELETE",
+            "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios/1", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "1"] }
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "auth": {
+              "type": "noauth"
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ]
         },
         {
-          "name": "1.2 POST usuario nuevo (sin cuentas) -> 201",
+          "name": "Login administrador",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Usuario Prueba Integridad\",\n  \"documento\": \"3216549870\",\n  \"email\": \"prueba.integridad@example.com\",\n  \"telefono\": \"3111111111\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
+            "description": "Usa adminEmail y adminPassword del environment (los mismos ADMIN_EMAIL y ADMIN_PASSWORD de .env)."
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
-                  "const data = pm.response.json();",
-                  "pm.environment.set('usuarioNuevoId', data.usuario.id);"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"Rol administrador\", () => pm.expect(r.usuario.rol).to.eql(\"administrador\"));",
+                  "pm.collectionVariables.set(\"tokenAdmin\", r.token);"
+                ]
               }
             }
           ]
         },
         {
-          "name": "1.3 DELETE usuario nuevo (sin relaciones) -> 200",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios/{{usuarioNuevoId}}", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "{{usuarioNuevoId}}"] }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.4 DELETE bolsillo con saldo -> 409",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/bolsillos/1", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "1"] }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.5 POST devolver 80000 del bolsillo 1 (vacía el saldo) -> 201",
+          "name": "Registro cliente A (enviando rol administrador)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/registro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"monto\": 80000,\n  \"descripcion\": \"Devolucion para liberar el bolsillo\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"nombre\": \"Cliente A\",\n  \"email\": \"cliente.a.{{ts}}@example.com\",\n  \"password\": \"ClaveSegura2026!\",\n  \"rol\": \"administrador\",\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos/1/devolver", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "1", "devolver"] }
+            "description": "Escalada de privilegios: el rol enviado se ignora y la cuenta nace como cliente."
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"El rol enviado se ignora: cliente\", () => pm.expect(r.usuario.rol).to.eql(\"cliente\"));",
+                  "pm.collectionVariables.set(\"loginA\", r.usuario.id);"
+                ]
               }
             }
           ]
         },
         {
-          "name": "1.6 DELETE bolsillo 1 (ya sin saldo, pero con transacciones) -> 409",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/bolsillos/1", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "1"] }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.7 POST bolsillo nuevo (sin relaciones) -> 201",
+          "name": "Login cliente A",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cuentaId\": 1,\n  \"nombre\": \"Bolsillo Prueba Temporal\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"email\": \"cliente.a.{{ts}}@example.com\",\n  \"password\": \"ClaveSegura2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"tokenA\", pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registro cliente B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/registro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "registro"
+              ]
             },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
-                  "const data = pm.response.json();",
-                  "pm.environment.set('bolsilloNuevoId', data.bolsillo.id);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.8 DELETE bolsillo nuevo (sin relaciones) -> 200",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloNuevoId}}", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "{{bolsilloNuevoId}}"] }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "1.9 PATCH cuenta 1 a cerrada con saldo > 0 -> 409",
-          "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"estado\": \"cerrada\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"nombre\": \"Cliente B\",\n  \"email\": \"cliente.b.{{ts}}@example.com\",\n  \"password\": \"ClaveSegura2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"loginB\", pm.response.json().usuario.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login cliente B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
             },
-            "url": { "raw": "{{baseUrl}}/api/cuentas/1/estado", "host": ["{{baseUrl}}"], "path": ["api", "cuentas", "1", "estado"] }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"cliente.b.{{ts}}@example.com\",\n  \"password\": \"ClaveSegura2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"tokenB\", pm.response.json().token);"
+                ]
               }
             }
           ]
         },
         {
-          "name": "1.10 DELETE usuario con id inválido -> 400",
+          "name": "Crear titular A vinculado a su login",
           "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios/abc", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "abc"] }
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Titular A\",\n  \"documento\": \"{{documentoA}}\",\n  \"email\": \"titular.a.{{ts}}@example.com\",\n  \"telefono\": \"3001234567\",\n  \"usuarioAuthId\": \"{{loginA}}\",\n  \"estado\": \"inactivo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 400', function () { pm.response.to.have.status(400); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"estado lo fija el servidor (mass assignment)\", () => pm.expect(r.usuario.estado).to.eql(\"activo\"));",
+                  "pm.collectionVariables.set(\"titularA\", r.usuario.id);"
+                ]
               }
             }
           ]
         },
         {
-          "name": "1.11 DELETE usuario inexistente -> 404",
+          "name": "Crear titular B vinculado a su login",
           "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios/9999", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "9999"] }
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Titular B\",\n  \"documento\": \"{{documentoB}}\",\n  \"email\": \"titular.b.{{ts}}@example.com\",\n  \"telefono\": \"3001234568\",\n  \"usuarioAuthId\": \"{{loginB}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"titularB\", pm.response.json().usuario.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear cuenta A (enviando saldoTotal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"{{titularA}}\",\n  \"saldoTotal\": 999999,\n  \"numeroCuenta\": \"123\",\n  \"estado\": \"cerrada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const c = pm.response.json().cuenta;",
+                  "pm.test(\"saldo 0, activa y número generado por la BD\", () => {",
+                  "  pm.expect(c.saldoTotal).to.eql(0);",
+                  "  pm.expect(c.estado).to.eql(\"activa\");",
+                  "  pm.expect(c.numeroCuenta).to.match(/^300[0-9]{7}$/);",
+                  "});",
+                  "pm.collectionVariables.set(\"cuentaA\", c.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear cuenta B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"{{titularB}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cuentaB\", pm.response.json().cuenta.id);"
+                ]
               }
             }
           ]
@@ -256,325 +511,1261 @@
       ]
     },
     {
-      "name": "Bloque 2 - Pruebas manuales de logica de negocio",
-      "description": "REINICIA EL SERVIDOR ANTES DE ESTA CARPETA (Ctrl+C y npm run dev) para volver a la data semilla original.",
+      "name": "2. Movimientos de dinero",
       "item": [
         {
-          "name": "2.1 POST bolsillo con Mass Assignment (saldo:999999) -> 201, saldo real 0",
+          "name": "Depósito 100.000 en cuenta A",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/deposito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "deposito"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cuentaId\": 1,\n  \"nombre\": \"Bolsillo Mass Assignment\",\n  \"saldo\": 999999\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
+              "raw": "{\n  \"cuentaDestinoId\": \"{{cuentaA}}\",\n  \"monto\": 100000,\n  \"descripcion\": \"Saldo inicial\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
-                  "const data = pm.response.json();",
-                  "pm.test('saldo ignorado, queda en 0', function () { pm.expect(data.bolsillo.saldo).to.eql(0); });",
-                  "pm.environment.set('bolsilloMassId', data.bolsillo.id);"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Tipo depósito\", () => pm.expect(pm.response.json().transaccion.tipo).to.eql(\"deposito\"));"
+                ]
               }
             }
           ]
         },
         {
-          "name": "2.2 PATCH archivar bolsillo (saldo 0) -> 200",
+          "name": "Crear bolsillo (enviando saldo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaId\": \"{{cuentaA}}\",\n  \"nombre\": \"Viaje {{ts}}\",\n  \"meta\": 800000,\n  \"saldo\": 999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json().bolsillo;",
+                  "pm.test(\"saldo 0 (mass assignment)\", () => pm.expect(b.saldo).to.eql(0));",
+                  "pm.collectionVariables.set(\"bolsilloA\", b.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apartar 80.000 en el bolsillo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloA}}/apartar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos",
+                "{{bolsilloA}}",
+                "apartar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 80000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"Bolsillo con 80.000 y transacción apartado\", () => {",
+                  "  pm.expect(r.bolsillo.saldo).to.eql(80000);",
+                  "  pm.expect(r.transaccion.tipo).to.eql(\"apartado\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Saldo de la cuenta A",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/{{cuentaA}}/saldo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "{{cuentaA}}",
+                "saldo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "pm.test(\"Total 100.000, apartado 80.000, disponible 20.000\", () => {",
+                  "  pm.expect(s.saldoTotal).to.eql(100000);",
+                  "  pm.expect(s.saldoApartado).to.eql(80000);",
+                  "  pm.expect(s.saldoDisponible).to.eql(20000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CASO ESTRELLA: retirar 50.000 con 20.000 disponibles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/retiro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "retiro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": \"{{cuentaA}}\",\n  \"monto\": 50000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "El saldo total (100.000) alcanza, pero el disponible (20.000) no: el dinero apartado no se puede gastar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retiro 10.000,50",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/retiro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "retiro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": \"{{cuentaA}}\",\n  \"monto\": 10000.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transferencia A → B 5.000",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/transferencia",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "transferencia"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": \"{{cuentaA}}\",\n  \"cuentaDestinoId\": \"{{cuentaB}}\",\n  \"monto\": 5000,\n  \"descripcion\": \"Pago\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Devolver más de lo que tiene el bolsillo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloA}}/devolver",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos",
+                "{{bolsilloA}}",
+                "devolver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 1000000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Devolver 80.000",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloA}}/devolver",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos",
+                "{{bolsilloA}}",
+                "devolver"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 80000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Bolsillo en 0\", () => pm.expect(pm.response.json().bolsillo.saldo).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Archivar bolsillo vacío (administrador)",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloA}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos",
+                "{{bolsilloA}}",
+                "estado"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"estado\": \"archivado\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloMassId}}/estado", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "{{bolsilloMassId}}", "estado"] }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ]
         },
         {
-          "name": "2.3 PATCH intentar reactivar bolsillo archivado -> 409",
+          "name": "Libro contable de la cuenta A",
           "request": {
-            "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"estado\": \"activo\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloMassId}}/estado", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos", "{{bolsilloMassId}}", "estado"] }
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/{{cuentaA}}/transacciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "{{cuentaA}}",
+                "transacciones"
+              ]
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json();",
+                  "pm.test(\"5 movimientos: depósito, apartado, retiro, transferencia, devolución\", () => {",
+                  "  pm.expect(t.map((x) => x.tipo)).to.eql([\"deposito\", \"apartado\", \"retiro\", \"transferencia\", \"devolucion\"]);",
+                  "});"
+                ]
               }
             }
           ]
         },
         {
-          "name": "2.4 CASO ESTRELLA: retiro 50000 con 80000 apartados (disponible 20000) -> 409",
+          "name": "Saldo final de la cuenta A",
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cuentaOrigenId\": 1,\n  \"monto\": 50000,\n  \"descripcion\": \"Retiro que excede el disponible\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": { "raw": "{{baseUrl}}/api/transacciones/retiro", "host": ["{{baseUrl}}"], "path": ["api", "transacciones", "retiro"] }
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/{{cuentaA}}/saldo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "{{cuentaA}}",
+                "saldo"
+              ]
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"100.000 − 10.000,50 − 5.000 = 84.999,50\", () => pm.expect(pm.response.json().saldoTotal).to.eql(84999.5));"
+                ]
               }
             }
           ]
-        },
-        {
-          "name": "2.5 POST transferencia a la misma cuenta -> 409",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cuentaOrigenId\": 1,\n  \"cuentaDestinoId\": 1,\n  \"monto\": 1000\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": { "raw": "{{baseUrl}}/api/transacciones/transferencia", "host": ["{{baseUrl}}"], "path": ["api", "transacciones", "transferencia"] }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status 409', function () { pm.response.to.have.status(409); });"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "2.6.1 Crear bolsillo 1/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 1\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.2 Crear bolsillo 2/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 2\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.3 Crear bolsillo 3/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 3\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.4 Crear bolsillo 4/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 4\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.5 Crear bolsillo 5/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 5\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.6 Crear bolsillo 6/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 6\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.7 Crear bolsillo 7/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 7\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.8 Crear bolsillo 8/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 8\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.9 Crear bolsillo 9/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 9\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.10 Crear bolsillo 10/10 en cuenta 2",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 10\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "2.6.11 Crear bolsillo 11 (excede el maximo) -> 409",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"cuentaId\": 2,\n  \"nombre\": \"Meta 11\"\n}", "options": { "raw": { "language": "json" } } },
-            "url": { "raw": "{{baseUrl}}/api/bolsillos", "host": ["{{baseUrl}}"], "path": ["api", "bolsillos"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', function () { pm.response.to.have.status(409); });"], "type": "text/javascript" } }]
         }
       ]
     },
     {
-      "name": "Bloque 3 - API Key",
-      "description": "Antes de correr esta carpeta, abre el entorno 'API Bolsillo - Local' y pega en la variable 'apiKey' el valor real que está en tu archivo .env.",
+      "name": "3. Validaciones",
       "item": [
         {
-          "name": "3.1 GET usuarios sin X-API-Key -> 401",
+          "name": "Monto con 3 decimales",
           "request": {
-            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/retiro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "retiro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": \"{{cuentaA}}\",\n  \"monto\": 10.555\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monto fuera de rango (5.000.000)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/deposito",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "deposito"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaDestinoId\": \"{{cuentaA}}\",\n  \"monto\": 5000000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transferencia a la misma cuenta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/transferencia",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "transferencia"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": \"{{cuentaA}}\",\n  \"cuentaDestinoId\": \"{{cuentaA}}\",\n  \"monto\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "ID inválido",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "abc"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cuenta inexistente (administrador)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "999999999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bolsillo con nombre duplicado (mayúsculas)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaId\": \"{{cuentaA}}\",\n  \"nombre\": \"VIAJE {{ts}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Seguridad (API Key, JWT, RBAC, BOLA)",
+      "item": [
+        {
+          "name": "Sin API Key",
+          "request": {
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
           },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', function () { pm.response.to.have.status(401); });"], "type": "text/javascript" } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "3.2 GET usuarios con X-API-Key incorrecta -> 401",
+          "name": "Sin JWT",
           "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [{ "key": "X-API-Key", "value": "{{apiKeyIncorrecta}}" }],
-            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', function () { pm.response.to.have.status(401); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "3.3 GET usuarios con X-API-Key correcta -> 200",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "3.4 GET usuarios con la key en query string (sin header) -> 401",
-          "request": {
-            "auth": { "type": "noauth" },
-            "method": "GET",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios?apiKey={{apiKey}}", "host": ["{{baseUrl}}"], "path": ["api", "usuarios"], "query": [{ "key": "apiKey", "value": "{{apiKey}}" }] }
-          },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 401', function () { pm.response.to.have.status(401); });"], "type": "text/javascript" } }]
-        },
-        {
-          "name": "3.5 GET / (publica, sin key) -> 200",
-          "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/", "host": ["{{baseUrl}}"], "path": [""] }
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas"
+              ]
+            }
           },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "3.6 GET /api-docs (publica, sin key) -> 200",
+          "name": "Cliente lista todas las cuentas (RBAC)",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api-docs", "host": ["{{baseUrl}}"], "path": ["api-docs"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas"
+              ]
+            }
           },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "3.7 GET /openapi.json (publica, sin key) -> 200",
+          "name": "B consulta la cuenta de A (BOLA)",
           "request": {
-            "auth": { "type": "noauth" },
             "method": "GET",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/openapi.json", "host": ["{{baseUrl}}"], "path": ["openapi.json"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/{{cuentaA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "{{cuentaA}}"
+              ]
+            }
           },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"], "type": "text/javascript" } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "3.8 Defense in depth: DELETE usuario 1 con key valida sigue dando 409",
+          "name": "B retira de la cuenta de A (BOLA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/retiro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "retiro"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cuentaOrigenId\": \"{{cuentaA}}\",\n  \"monto\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "B consulta el bolsillo de A (BOLA)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos",
+                "{{bolsilloA}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "B: mis cuentas (identidad desde el JWT)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/mis-cuentas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "mis-cuentas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const ids = pm.response.json().map((c) => c.id);",
+                  "pm.test(\"Solo la cuenta de B, con la transferencia recibida\", () => {",
+                  "  pm.expect(ids).to.eql([Number(pm.collectionVariables.get(\"cuentaB\"))]);",
+                  "  pm.expect(pm.response.json()[0].saldoTotal).to.eql(5000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "B ve la transferencia que recibió",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cuentas/{{cuentaB}}/transacciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cuentas",
+                "{{cuentaB}}",
+                "transacciones"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Una transferencia entrante\", () => pm.expect(pm.response.json().map((t) => t.tipo)).to.eql([\"transferencia\"]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Integridad",
+      "item": [
+        {
+          "name": "Las transacciones no se editan (sin PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "1"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Las transacciones no se eliminan (sin DELETE)",
           "request": {
             "method": "DELETE",
-            "header": [],
-            "url": { "raw": "{{baseUrl}}/api/usuarios/1", "host": ["{{baseUrl}}"], "path": ["api", "usuarios", "1"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/transacciones/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "transacciones",
+                "1"
+              ]
+            }
           },
-          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', function () { pm.response.to.have.status(409); });"], "type": "text/javascript" } }]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar titular con cuentas",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{titularA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "{{titularA}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar bolsillo con transacciones",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bolsillos/{{bolsilloA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bolsillos",
+                "{{bolsilloA}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }

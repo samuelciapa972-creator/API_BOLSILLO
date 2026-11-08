@@ -60,15 +60,27 @@ const tieneAccesoGlobal = (req) => {
 
 // ========================================
 // ¿La cuenta pertenece al titular?
+// Es async: quien la use DEBE esperarla.
+// Una promesa sin await es "truthy" y
+// dejaría pasar a cualquiera (BOLA).
 // ========================================
 
-const esCuentaDelTitular = (
+const esCuentaDelTitular = async (
   cuentaId,
   titular
 ) => {
 
+  // Sin cuenta (p. ej. el origen de un
+  // depósito) no hay nada que comparar
+  if (
+    cuentaId === null ||
+    cuentaId === undefined
+  ) {
+    return false;
+  }
+
   const cuenta =
-    cuentasService
+    await cuentasService
       .obtenerCuentaPorId(
         cuentaId
       );
@@ -91,91 +103,104 @@ const esCuentaDelTitular = (
 // no se puede enumerar qué IDs existen.
 // Los roles globales siguen al controller,
 // que responde 404 si no existe.
+//
+// perteneceAlTitular puede ser síncrona o
+// devolver una promesa (consultas a BD).
 // ========================================
 
 const autorizarPropiedad = (
   perteneceAlTitular
 ) => {
 
-  return (req, res, next) => {
+  return async (req, res, next) => {
 
-    // ------------------------------------
-    // Requiere autenticación previa
-    // ------------------------------------
+    try {
 
-    if (!req.usuario) {
-      return res.status(401).json({
-        mensaje:
-          "Usuario no autenticado"
-      });
-    }
+      // ------------------------------------
+      // Requiere autenticación previa
+      // ------------------------------------
 
-
-    // ------------------------------------
-    // Administrador / auditor (lectura)
-    // ------------------------------------
-
-    if (
-      tieneAccesoGlobal(req)
-    ) {
-      return next();
-    }
+      if (!req.usuario) {
+        return res.status(401).json({
+          mensaje:
+            "Usuario no autenticado"
+        });
+      }
 
 
-    // ------------------------------------
-    // Esta regla aplica a clientes
-    // ------------------------------------
+      // ------------------------------------
+      // Administrador / auditor (lectura)
+      // ------------------------------------
 
-    if (
-      req.usuario.rol !==
-      "cliente"
-    ) {
-      return res.status(403).json({
-        mensaje:
-          "No tiene permisos para acceder a este recurso"
-      });
-    }
+      if (
+        tieneAccesoGlobal(req)
+      ) {
+        return next();
+      }
 
 
-    // ------------------------------------
-    // Titular del usuario autenticado
-    // (identidad derivada del JWT, nunca
-    // de la URL ni del body)
-    // ------------------------------------
+      // ------------------------------------
+      // Esta regla aplica a clientes
+      // ------------------------------------
 
-    const titular =
-      usuariosService
-        .obtenerUsuarioPorUsuarioAuthId(
-          req.usuario.id
+      if (
+        req.usuario.rol !==
+        "cliente"
+      ) {
+        return res.status(403).json({
+          mensaje:
+            "No tiene permisos para acceder a este recurso"
+        });
+      }
+
+
+      // ------------------------------------
+      // Titular del usuario autenticado
+      // (identidad derivada del JWT, nunca
+      // de la URL ni del body)
+      // ------------------------------------
+
+      const titular =
+        await usuariosService
+          .obtenerUsuarioPorUsuarioAuthId(
+            req.usuario.id
+          );
+
+
+      if (!titular) {
+        return res.status(403).json({
+          mensaje:
+            "El usuario no tiene un titular de billetera asociado"
+        });
+      }
+
+
+      // ------------------------------------
+      // Comprobar propiedad
+      // ------------------------------------
+
+      const pertenece =
+        await perteneceAlTitular(
+          req,
+          titular
         );
 
 
-    if (!titular) {
-      return res.status(403).json({
-        mensaje:
-          "El usuario no tiene un titular de billetera asociado"
-      });
+      if (
+        !pertenece
+      ) {
+        return res.status(403).json({
+          mensaje:
+            "No tiene permisos para acceder a este recurso"
+        });
+      }
+
+
+      next();
+
+    } catch (error) {
+      next(error);
     }
-
-
-    // ------------------------------------
-    // Comprobar propiedad
-    // ------------------------------------
-
-    if (
-      !perteneceAlTitular(
-        req,
-        titular
-      )
-    ) {
-      return res.status(403).json({
-        mensaje:
-          "No tiene permisos para acceder a este recurso"
-      });
-    }
-
-
-    next();
   };
 };
 
@@ -248,20 +273,21 @@ const autorizarCuentaDeBolsilloNuevo =
 
 const autorizarAccesoBolsillo =
   autorizarPropiedad(
-    (req, titular) => {
+    async (req, titular) => {
 
       const bolsillo =
-        bolsillosService
+        await bolsillosService
           .obtenerBolsilloPorId(
             req.params.id
           );
 
-      return (
-        !!bolsillo &&
-        esCuentaDelTitular(
-          bolsillo.cuentaId,
-          titular
-        )
+      if (!bolsillo) {
+        return false;
+      }
+
+      return await esCuentaDelTitular(
+        bolsillo.cuentaId,
+        titular
       );
     }
   );
@@ -275,10 +301,10 @@ const autorizarAccesoBolsillo =
 
 const autorizarAccesoTransaccion =
   autorizarPropiedad(
-    (req, titular) => {
+    async (req, titular) => {
 
       const transaccion =
-        transaccionesService
+        await transaccionesService
           .obtenerTransaccionPorId(
             req.params.id
           );
@@ -287,15 +313,22 @@ const autorizarAccesoTransaccion =
         return false;
       }
 
-      return (
-        esCuentaDelTitular(
+      // Cada comprobación con await: un
+      // "||" entre promesas siempre daría
+      // true
+      const esOrigenPropio =
+        await esCuentaDelTitular(
           transaccion.cuentaOrigenId,
           titular
-        ) ||
-        esCuentaDelTitular(
-          transaccion.cuentaDestinoId,
-          titular
-        )
+        );
+
+      if (esOrigenPropio) {
+        return true;
+      }
+
+      return await esCuentaDelTitular(
+        transaccion.cuentaDestinoId,
+        titular
       );
     }
   );

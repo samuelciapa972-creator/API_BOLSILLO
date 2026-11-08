@@ -100,6 +100,9 @@ const {
  *           type: number
  *           format: float
  *           minimum: 0.01
+ *           maximum: 999999999999.99
+ *           multipleOf: 0.01
+ *           description: Opcional. Máximo 2 decimales
  *           example: 800000.00
  *
  *     BolsilloActualizacionEntrada:
@@ -120,6 +123,9 @@ const {
  *           type: number
  *           format: float
  *           minimum: 0.01
+ *           maximum: 999999999999.99
+ *           multipleOf: 0.01
+ *           description: Opcional. Máximo 2 decimales
  *           example: 900000.00
  *
  *     EstadoBolsilloEntrada:
@@ -148,6 +154,8 @@ const {
  *           format: float
  *           minimum: 0.01
  *           maximum: 2000000
+ *           multipleOf: 0.01
+ *           description: Máximo 2 decimales
  *           example: 20000.00
  *
  *         descripcion:
