@@ -1,4 +1,4 @@
-# API BOLSILLO — Bloque 7 (Supabase + PostgreSQL)
+# API BOLSILLO — Bloque 11 (recuperación de cuentas y preparación para React)
 
 Proyecto para el desarrollo y análisis de seguridad de una API REST para una billetera virtual, utilizando Node.js, Express, Swagger/OpenAPI y herramientas de análisis SAST, SCA y DAST.
 
@@ -68,15 +68,28 @@ npm install
 
 Copiar `.env.example` a `.env` y ajustar los valores si hace falta.
 
-Desde el Lab. No.10 se configura el administrador inicial:
+Variables principales:
+
+```
+DATABASE_URL=postgresql://USUARIO:CONTRASENA@HOST:5432/postgres   (Session pooler de Supabase)
+JWT_SECRET=<secreto largo y aleatorio>
+API_KEY_POSTMAN=<api key>          (también API_KEY_ADMIN y API_KEY_MOVIL)
+ALLOWED_ORIGIN=http://localhost:3000,http://localhost:5173
+```
+
+`ALLOWED_ORIGIN` acepta varios orígenes separados por comas: Swagger (`:3000`) y la futura SPA React + Vite (`:5173`).
+
+El administrador inicial **ya no se crea al arrancar la API** (Bloque 7.5.1). Se crea una sola vez con:
 
 ```
 ADMIN_NOMBRE=Administrador Bolsillo
 ADMIN_EMAIL=admin@bolsillo.com
-ADMIN_PASSWORD=<contraseña segura>
+ADMIN_PASSWORD=<contraseña segura de 12+ caracteres>
+
+npm run seed:admin
 ```
 
-Si faltan, el servidor arranca con la advertencia "Administrador inicial no configurado" y no habrá ningún administrador.
+Si ya existe un administrador, el script no crea otro ni modifica nada. Después se pueden retirar esas variables del `.env`.
 
 # Estructura del proyecto
 
@@ -124,8 +137,13 @@ API_BOLSILLO/
 │   │   ├── bolsillos.routes.js
 │   │   └── seguridad.routes.js
 │   │
+│   ├── scripts/
+│   │   └── crearAdmin.js    (npm run seed:admin)
+│   │
 │   ├── services/
 │   │   ├── auth.service.js
+│   │   ├── passwordReset.service.js        (Bloque 11)
+│   │   ├── codigosRecuperacion.service.js  (Bloque 11)
 │   │   ├── usuarios.service.js
 │   │   ├── cuentas.service.js
 │   │   ├── transacciones.service.js
@@ -149,10 +167,13 @@ API_BOLSILLO/
 │   ├── 02_roles_seguridad.sql
 │   ├── 03_verificacion.sql
 │   ├── 04_datos_prueba.sql
+│   ├── 11_3_version_sesion.sql            (Bloque 11)
+│   ├── 11_4_password_reset_tokens.sql     (Bloque 11)
+│   ├── 11_4_2_codigos_recuperacion.sql    (Bloque 11)
 │   └── README.md            (guía, modelo y evidencias del Bloque 7)
 │
 ├── scripts/
-│   └── probar-conexion.js   (npm run db:probar)
+│   └── probar-conexion.js   (npm run db:probar, incluye diagnóstico RLS)
 │
 ├── postman/
 │   ├── API_BOLSILLO.postman_collection.json
@@ -298,6 +319,8 @@ El login deja de limitarse a decir "credenciales correctas": ahora entrega una *
 Nunca `password`, `passwordHash` ni otros secretos: **firmar no es cifrar**. Cualquiera puede leer el payload con `jwt.decode()`; la firma solo permite detectar alteraciones. `jwt.verify()` sí comprueba firma y expiración.
 
 ## API Key + JWT
+
+> **Actualizado en el Bloque 11:** el login ya no exige API Key y los recursos usan solo JWT. La tabla de abajo describe el estado del Lab. 9; el esquema vigente está en la sección del Bloque 11.
 
 En OpenAPI, para exigir **ambos** esquemas van en el mismo objeto:
 
@@ -446,7 +469,7 @@ Los arreglos en memoria se reemplazaron por PostgreSQL (Supabase) **sin cambiar 
 - **La base de datos es la segunda línea de defensa:** CHECK de saldos, montos y estados; unicidad sin distinguir mayúsculas; FK `RESTRICT`; un trigger hace inmutables las transacciones; RLS y `REVOKE` cierran el acceso directo.
 - **Montos en `NUMERIC(14,2)`** y con máximo 2 decimales en la entrada.
 
-**Evidencias (capturas de Swagger y PostgreSQL contra Supabase):** [`docs/evidencias/`](./docs/evidencias/README.md).
+**Evidencias:** se entregan en PDF, fuera del repositorio.
 
 ## Colección de Postman (Bloque 7)
 
@@ -466,6 +489,68 @@ npx newman run postman/API_BOLSILLO.postman_collection.json \
 ## Dependencias (`npm audit`)
 
 `npm audit fix` actualizó `proxy-addr` (crítica: falsificación de IP; afecta al rate limit detrás de un proxy), `brace-expansion` y `fast-uri`. **Dependencias de producción: 0 vulnerabilidades** (`npm audit --omit=dev`). Quedan 3 avisos altos en `braces` → `chokidar` → `nodemon`, solo de desarrollo. No se aplicó `npm audit fix --force` porque bajaría nodemon de 3.x a 1.14.10.
+
+# Bloques 7.5.1 y 8 — Bootstrap del administrador y validación integral
+
+- **7.5.1:** `src/app.js` solo arranca Express. El primer administrador se crea con `npm run seed:admin` (`src/scripts/crearAdmin.js`), en una transacción con `pg_advisory_xact_lock(7505, 1)`: no duplica administradores ni convierte en administrador a una cuenta que ya existe.
+- **8:** se aplicó la matriz de pruebas del laboratorio (P01–P36 y SEG-01 a SEG-08) a la API Bolsillo, con equivalencias: pacientes → titulares, médicos → cuentas, consultorios → bolsillos, citas → transacciones, médico → auditor.
+
+# Bloque 11 — Versión de sesión, recuperación de cuentas y preparación para React
+
+## Base de datos
+
+Se ejecutan **una vez**, en este orden, sobre la base del Bloque 8. No borran ni reinician nada:
+
+| Script | Qué agrega |
+|---|---|
+| `database/11_3_version_sesion.sql` | `usuarios_auth.version_sesion INTEGER NOT NULL DEFAULT 0` |
+| `database/11_4_password_reset_tokens.sql` | Tabla `password_reset_tokens` (usuario, administrador que autoriza, `token_hash`, vencimiento, uso) |
+| `database/11_4_2_codigos_recuperacion.sql` | Tabla `codigos_recuperacion` (usuario, `codigo_hash`, uso) |
+
+Resultado: **nueve tablas** en `public`, todas con RLS habilitado y sin permisos para `anon` ni `authenticated`. Tokens y códigos se guardan solo como hash SHA-256. `database/03_verificacion.sql` ya espera las nueve tablas.
+
+## Versión de sesión
+
+El JWT lleva `vs` (versión de sesión). Al cambiar o restablecer la contraseña, `version_sesion` aumenta en la base y `auth.middleware.js` rechaza los tokens anteriores con `401 "Sesión revocada"`.
+
+## Endpoints nuevos
+
+| Endpoint | Credencial | Qué hace |
+|---|---|---|
+| `PATCH /api/auth/cambiar-password` | JWT | Exige la contraseña actual; guarda un nuevo hash bcrypt y revoca los JWT anteriores |
+| `POST /api/auth/recuperacion/admin/{usuarioId}` | JWT + rol administrador | Emite un token de un solo uso que vence en 15 minutos |
+| `POST /api/auth/restablecer-password` | API Key | Cambia la contraseña con el token y lo marca como utilizado |
+| `POST /api/auth/codigos-recuperacion` | JWT | Genera ocho códigos de respaldo (visibles una sola vez); pide la contraseña actual |
+| `GET /api/auth/codigos-recuperacion/estado` | JWT | Cuántos códigos quedan disponibles |
+| `POST /api/auth/codigos-recuperacion/regenerar` | JWT | Invalida los códigos anteriores y genera ocho nuevos |
+| `POST /api/auth/restablecer-con-codigo` | API Key | Cambia la contraseña con un código, que se consume |
+
+La recuperación y los códigos tienen su propio rate limit (10 intentos cada 15 minutos).
+
+## Credenciales por tipo de cliente
+
+| Ruta | Credencial | Motivo |
+|---|---|---|
+| `POST /api/auth/login` | Ninguna (validaciones + rate limit de intentos fallidos) | La SPA React no debe guardar una API Key privada |
+| `/api/usuarios`, `/api/cuentas`, `/api/transacciones`, `/api/bolsillos` | JWT (+ RBAC y control de propiedad) | Recursos de la persona autenticada |
+| `/api/auth/perfil`, `cambiar-password`, `recuperacion/admin`, `codigos-recuperacion` | JWT | Operaciones sobre la propia cuenta |
+| Registro, restablecimientos y `/api/seguridad/cliente` | API Key | Integraciones privadas; los restablecimientos todavía no están listos para el navegador |
+
+Swagger ya no tiene seguridad global: cada operación declara la credencial que exige.
+
+## CORS
+
+Se permiten los orígenes de `ALLOWED_ORIGIN`, los métodos con `OPTIONS` y los encabezados `Content-Type`, `Authorization` y `X-API-Key`. El preflight desde `http://localhost:5173` responde `204` con `Access-Control-Allow-Origin`.
+
+## RLS habilitado no es RLS aplicado
+
+`npm run db:probar` muestra el rol real del `pg.Pool`: `postgres`, con `BYPASSRLS = true`. RLS protege las tablas frente a accesos directos con roles públicos, pero **no filtra las consultas del backend**. El aislamiento entre usuarios lo dan JWT, RBAC y BOLA/IDOR en Express.
+
+## Pendientes
+
+- Reemplazar la conexión `postgres` (BYPASSRLS) por un rol propio con permisos mínimos antes de producción.
+- Preparar las rutas de restablecimiento para el navegador.
+- Integrar React + Vite y después ejecutar los bloques 9 y 10 de pruebas de seguridad.
 
 # realizar las pruebas y documentar
 SAST → Semgrep
