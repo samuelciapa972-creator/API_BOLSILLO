@@ -67,6 +67,8 @@ npm install react-router-dom @fontsource-variable/fraunces @fontsource-variable/
 
 ## 4. Estructura
 
+Librerías de interfaz: `sonner` (avisos emergentes), `@phosphor-icons/react` (íconos) y `motion` (indicador de navegación y cifras animadas). Ninguna exige `unsafe-eval`, así que la CSP estricta del build se mantiene.
+
 ```text
 frontend/
 ├── index.html                 documento raíz (lang="es")
@@ -86,10 +88,13 @@ frontend/
     │   ├── recursos.service.js cuentas, bolsillos, transacciones, titulares, indicadores
     │   └── sesion-expirada.js aviso de sesión vencida o revocada
     ├── context/               AuthContext (sesión, cierre al vencer el JWT)
-    ├── hooks/                 useAuth, useCarga (cargando/error/datos), usePaginacion
-    ├── components/            Marco, RutaProtegida, BarraSaldo, Extracto, Dialogo,
-    │                          Formulario, FormularioMovimiento, EstadoVista, Sello,
-    │                          Paginacion, SelectorTema
+    ├── hooks/                 useAuth, useCarga (cargando/error/datos), usePaginacion, useTema
+    ├── components/            Marco (lomo lateral + pestañas móviles), RutaProtegida,
+    │                          PanelCuenta (saldo, acciones, bolsillos, extracto),
+    │                          BarraSaldo, CifraAnimada, Sobre (bolsillo con anillo de meta),
+    │                          Extracto, IconoMovimiento, GraficoTipos, Hoja (diálogo
+    │                          deslizable), Formulario, FormularioMovimiento, EstadoVista,
+    │                          Notificaciones, Sello, Paginacion, SelectorTema
     ├── pages/                 Acceso, Recuperar, Inicio, Cuentas, Cuenta, Titulares,
     │                          Movimientos, Seguridad, NoEncontrada
     └── utils/                 formato (COP, fechas, etiquetas) y tema

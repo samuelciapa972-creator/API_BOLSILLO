@@ -1,11 +1,14 @@
+import { Key, MagnifyingGlass, PencilSimple, Plus, Trash, UserPlus } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../hooks/useAuth";
 import { useCarga } from "../hooks/useCarga";
 import { actualizarTitular, crearTitular, eliminarTitular, listarTitulares } from "../services/recursos.service";
 import { crearAccesoPrivilegiado, generarRecuperacionAdmin } from "../services/auth.service";
-import { Dialogo } from "../components/Dialogo";
+import { Hoja } from "../components/Hoja";
 import { Contenido, Vacio } from "../components/EstadoVista";
-import { AvisoError, AvisoExito, Campo } from "../components/Formulario";
+import { AvisoError, Campo } from "../components/Formulario";
 import { Paginacion } from "../components/Paginacion";
 import { usePaginacion } from "../hooks/usePaginacion";
 import { Sello } from "../components/Sello";
@@ -16,8 +19,14 @@ export function TitularesPage() {
   const esAdmin = usuario.rol === "administrador";
   const titulares = useCarga(() => listarTitulares());
   const [busqueda, setBusqueda] = useState("");
-  const [accion, setAccion] = useState(null);
-  const [exito, setExito] = useState(null);
+  const [parametros, setParametros] = useSearchParams();
+  const [accionLocal, setAccion] = useState(null);
+  // ?nuevo=1 llega desde el atajo "Registrar titular" del resumen.
+  const accion = accionLocal ?? (esAdmin && parametros.get("nuevo") === "1" ? { tipo: "nuevo" } : null);
+  const cerrar = () => {
+    setAccion(null);
+    if (parametros.has("nuevo")) setParametros({}, { replace: true });
+  };
 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -32,8 +41,8 @@ export function TitularesPage() {
   const paginacion = usePaginacion(filtrados, 15);
 
   const terminar = (mensaje) => {
-    setAccion(null);
-    setExito(mensaje);
+    cerrar();
+    toast.success(mensaje);
     titulares.recargar();
   };
 
@@ -47,44 +56,31 @@ export function TitularesPage() {
 
   return (
     <>
-      <div className="encabezado-pagina">
+      <header className="saludo saludo--fila">
         <div>
           <h1>Titulares</h1>
-          <p>
+          <p className="texto-2">
             Personas dueñas de las cuentas. {esAdmin ? "" : "Como auditor solo puede consultar."}
           </p>
         </div>
         {esAdmin ? (
           <div className="acciones">
             <button className="boton" type="button" onClick={() => setAccion({ tipo: "nuevo" })}>
-              Registrar titular
+              <Plus size={18} weight="bold" aria-hidden="true" /> Registrar titular
             </button>
             <button className="boton boton--secundario" type="button" onClick={() => setAccion({ tipo: "acceso" })}>
-              Crear acceso de personal
+              <UserPlus size={18} aria-hidden="true" /> Acceso de personal
             </button>
           </div>
         ) : null}
-      </div>
+      </header>
 
-      {exito ? (
-        <div style={{ marginBottom: 16 }}>
-          <AvisoExito>{exito}</AvisoExito>
-        </div>
-      ) : null}
-
-      <div className="filtros">
-        <Campo etiqueta="Buscar titular">
-          {(props) => (
-            <input
-              {...props}
-              className="entrada"
-              type="search"
-              placeholder="Nombre, correo o documento"
-              value={busqueda}
-              onChange={(evento) => setBusqueda(evento.target.value)}
-            />
-          )}
-        </Campo>
+      <div className="barra-filtros">
+        <label className="buscador">
+          <MagnifyingGlass size={18} aria-hidden="true" />
+          <span className="solo-lector">Buscar titular</span>
+          <input type="search" placeholder="Nombre, correo o documento" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} />
+        </label>
       </div>
 
       <Contenido
@@ -128,20 +124,21 @@ export function TitularesPage() {
                       {esAdmin ? (
                         <td className="tabla__acciones derecha">
                           <div className="acciones" style={{ justifyContent: "flex-end" }}>
-                            <button type="button" className="boton boton--secundario" onClick={() => setAccion({ tipo: "editar", titular: t })}>
-                              Editar
+                            <button type="button" className="boton boton--fantasma boton--icono" aria-label={`Editar a ${t.nombre}`} title="Editar" onClick={() => setAccion({ tipo: "editar", titular: t })}>
+                              <PencilSimple size={18} aria-hidden="true" />
                             </button>
                             <button
                               type="button"
-                              className="boton boton--fantasma"
+                              className="boton boton--fantasma boton--icono"
                               disabled={!t.usuarioAuthId}
-                              title={t.usuarioAuthId ? undefined : "El titular no tiene acceso de inicio de sesión vinculado"}
+                              aria-label={t.usuarioAuthId ? `Token de recuperación para ${t.nombre}` : `${t.nombre} no tiene acceso vinculado`}
+                              title={t.usuarioAuthId ? "Token de recuperación" : "Sin acceso de inicio de sesión vinculado"}
                               onClick={() => setAccion({ tipo: "token", titular: t })}
                             >
-                              Token de recuperación
+                              <Key size={18} aria-hidden="true" />
                             </button>
-                            <button type="button" className="boton boton--fantasma" onClick={() => setAccion({ tipo: "eliminar", titular: t })}>
-                              Eliminar
+                            <button type="button" className="boton boton--fantasma boton--icono" aria-label={`Eliminar a ${t.nombre}`} title="Eliminar" onClick={() => setAccion({ tipo: "eliminar", titular: t })}>
+                              <Trash size={18} aria-hidden="true" />
                             </button>
                           </div>
                         </td>
@@ -156,13 +153,13 @@ export function TitularesPage() {
         )}
       </Contenido>
 
-      <Dialogo abierto={Boolean(accion)} alCerrar={() => setAccion(null)} titulo={accion ? TITULOS[accion.tipo] : ""}>
+      <Hoja abierta={Boolean(accion)} alCerrar={cerrar} titulo={accion ? TITULOS[accion.tipo] : ""}>
         {accion?.tipo === "nuevo" ? <FormularioTitular alTerminar={terminar} /> : null}
         {accion?.tipo === "editar" ? <FormularioTitular titular={accion.titular} alTerminar={terminar} /> : null}
         {accion?.tipo === "eliminar" ? <EliminarTitular titular={accion.titular} alTerminar={terminar} /> : null}
         {accion?.tipo === "token" ? <TokenRecuperacion titular={accion.titular} /> : null}
         {accion?.tipo === "acceso" ? <FormularioAcceso alTerminar={terminar} /> : null}
-      </Dialogo>
+      </Hoja>
     </>
   );
 }
@@ -203,7 +200,7 @@ function FormularioTitular({ titular, alTerminar }) {
   };
 
   return (
-    <form className="formulario formulario--dos" onSubmit={enviar}>
+    <form className="formulario" onSubmit={enviar}>
       <Campo etiqueta="Nombre completo" ancho>
         {(props) => (
           <input {...props} className="entrada" required minLength={3} maxLength={100} value={datos.nombre} onChange={cambiar("nombre")} />

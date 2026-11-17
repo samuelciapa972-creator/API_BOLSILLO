@@ -23,7 +23,7 @@ y un único acento cobre.
 | Profundidad | bordes finos + sombra mínima en la hoja | Hojas sobre una mesa: una sola elevación, sin tarjetas flotando. |
 | Radio | 4 px controles · 8 px hojas · 12 px diálogos | Papel cortado, no píldoras. |
 | Espaciado | base 4 px; 16/24 dentro de hojas, 40 entre bloques | Densidad de extracto, con aire entre secciones. |
-| Movimiento | solo hover, foco y la barra de saldo al cargar (≤ 240 ms) | Es una herramienta de dinero: nada debe distraer. Respeta `prefers-reduced-motion`. |
+| Movimiento | hover, foco, entrada de página (240 ms), hoja deslizable (320 ms), indicador de navegación con resorte sin rebote y la cifra del saldo que cuenta solo cuando cambia por un movimiento | Cada animación explica un cambio de estado; nada se mueve por adorno. Respeta `prefers-reduced-motion`. |
 
 ## Firma
 
@@ -31,6 +31,8 @@ y un único acento cobre.
 barra donde el tramo verde es lo disponible y cada bolsillo ocupa un tramo cobre
 separado por una muesca. Refleja la regla central del negocio:
 `saldo disponible = saldo total − suma de bolsillos activos`.
+
+**Navegación**: el "lomo" de la libreta (barra lateral con costura punteada) en PC y pestañas inferiores en el celular. Los bolsillos son **sobres** con una solapa en V y un anillo de avance hacia la meta.
 
 **Motivo repetido**: las filas del extracto con línea punteada entre el
 concepto y el monto, como en una libreta impresa.

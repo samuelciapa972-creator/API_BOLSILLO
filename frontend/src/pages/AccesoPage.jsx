@@ -10,11 +10,39 @@ export function MarcoAcceso({ children }) {
         <Link to="/acceso" className="marca">
           Bolsillo
         </Link>
-        <p className="acceso__lema">Tu dinero, con bolsillos para lo que importa.</p>
-        <p className="acceso__regla">
-          Lo que apartas en un bolsillo sigue en tu cuenta, pero no se gasta por error:{" "}
-          <code>disponible = total − bolsillos</code>.
-        </p>
+        <div className="acceso__centro">
+          <p className="acceso__lema">Tu dinero, con bolsillos para lo que importa.</p>
+          {/* Explica la regla del negocio con la misma barra de la app: proporciones, no cifras. */}
+          <figure className="regla" aria-label="Lo que apartas en bolsillos sigue en tu cuenta, pero no se gasta por error">
+            <div className="regla__fila">
+              <span>Saldo total</span>
+              <span className="regla__barra">
+                <i className="regla__tramo regla__tramo--disponible" style={{ "--d": "0ms", flexGrow: 58 }} />
+                <i className="regla__tramo regla__tramo--bolsillo" style={{ "--d": "80ms", flexGrow: 27 }} />
+                <i className="regla__tramo regla__tramo--bolsillo" style={{ "--d": "140ms", flexGrow: 15 }} />
+              </span>
+            </div>
+            <div className="regla__fila">
+              <span>En bolsillos</span>
+              <span className="regla__barra">
+                <i className="regla__hueco" style={{ flexGrow: 58 }} />
+                <i className="regla__tramo regla__tramo--bolsillo" style={{ "--d": "220ms", flexGrow: 27 }} />
+                <i className="regla__tramo regla__tramo--bolsillo" style={{ "--d": "280ms", flexGrow: 15 }} />
+              </span>
+            </div>
+            <div className="regla__fila">
+              <span>Disponible</span>
+              <span className="regla__barra">
+                <i className="regla__tramo regla__tramo--disponible" style={{ "--d": "360ms", flexGrow: 58 }} />
+                <i className="regla__hueco" style={{ flexGrow: 42 }} />
+              </span>
+            </div>
+            <figcaption>
+              Lo que apartas en un bolsillo sigue en tu cuenta, pero no se gasta por error.
+            </figcaption>
+          </figure>
+        </div>
+        <p className="acceso__pie-tapa">Billetera virtual · pesos colombianos</p>
       </aside>
       <main className="acceso__formulario" id="contenido">
         <div className="acceso__caja">{children}</div>
@@ -96,7 +124,7 @@ export function AccesoPage() {
 
         <AvisoError error={error} />
 
-        <button className="boton boton--ancho" type="submit" disabled={enviando}>
+        <button className="boton boton--grande boton--ancho" type="submit" disabled={enviando}>
           {enviando ? "Verificando…" : "Entrar"}
         </button>
       </form>

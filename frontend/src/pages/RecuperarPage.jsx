@@ -144,7 +144,7 @@ export function RecuperarPage() {
 
           <AvisoError error={error} />
 
-          <button className="boton boton--ancho" type="submit" disabled={enviando || nueva !== confirmar}>
+          <button className="boton boton--grande boton--ancho" type="submit" disabled={enviando || nueva !== confirmar}>
             {enviando ? "Restableciendo…" : "Restablecer contraseña"}
           </button>
         </form>

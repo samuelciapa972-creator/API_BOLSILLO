@@ -15,12 +15,10 @@ export function SeguridadPage() {
 
   return (
     <>
-      <div className="encabezado-pagina">
-        <div>
-          <h1>Seguridad de la cuenta</h1>
-          <p>Contraseña, códigos de respaldo y datos de la sesión actual.</p>
-        </div>
-      </div>
+      <header className="saludo">
+        <h1>Seguridad</h1>
+        <p className="texto-2">Contraseña, códigos de respaldo y datos de la sesión actual.</p>
+      </header>
 
       <div className="dos-columnas">
         <section className="hoja" aria-labelledby="titulo-sesion">
@@ -92,7 +90,7 @@ function CambioPassword() {
       <p className="texto-2" style={{ margin: "6px 0 16px" }}>
         Al cambiarla se cierran todas las sesiones abiertas, incluida esta.
       </p>
-      <form className="formulario formulario--dos" onSubmit={enviar}>
+      <form className="formulario formulario--dos formulario--angosto" onSubmit={enviar}>
         <Campo etiqueta="Contraseña actual" ancho>
           {(props) => (
             <input

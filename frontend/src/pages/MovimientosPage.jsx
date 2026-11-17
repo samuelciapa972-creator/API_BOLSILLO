@@ -1,9 +1,10 @@
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCarga } from "../hooks/useCarga";
 import { listarTransacciones } from "../services/recursos.service";
 import { Contenido, Vacio } from "../components/EstadoVista";
-import { Campo } from "../components/Formulario";
+import { IconoMovimiento } from "../components/IconoMovimiento";
 import { Paginacion } from "../components/Paginacion";
 import { usePaginacion } from "../hooks/usePaginacion";
 import { Sello } from "../components/Sello";
@@ -27,39 +28,27 @@ export function MovimientosPage() {
 
   return (
     <>
-      <div className="encabezado-pagina">
-        <div>
-          <h1>Movimientos</h1>
-          <p>Todas las transacciones registradas. Son inmutables: ninguna se edita ni se borra.</p>
-        </div>
-      </div>
+      <header className="saludo">
+        <h1>Movimientos</h1>
+        <p className="texto-2">Todas las transacciones registradas. Son inmutables: ninguna se edita ni se borra.</p>
+      </header>
 
-      <div className="filtros">
-        <Campo etiqueta="Tipo">
-          {(props) => (
-            <select {...props} className="selector" value={tipo} onChange={(evento) => setTipo(evento.target.value)}>
-              <option value="todos">Todos</option>
-              {Object.entries(ETIQUETA_TIPO).map(([valor, texto]) => (
-                <option key={valor} value={valor}>
-                  {texto}
-                </option>
-              ))}
-            </select>
-          )}
-        </Campo>
-        <Campo etiqueta="ID de cuenta">
-          {(props) => (
-            <input
-              {...props}
-              className="entrada num"
-              type="search"
-              inputMode="numeric"
-              placeholder="Origen o destino"
-              value={cuenta}
-              onChange={(evento) => setCuenta(evento.target.value)}
-            />
-          )}
-        </Campo>
+      <div className="barra-filtros">
+        <label className="buscador">
+          <MagnifyingGlass size={18} aria-hidden="true" />
+          <span className="solo-lector">Filtrar por ID de cuenta</span>
+          <input type="search" inputMode="numeric" placeholder="ID de cuenta (origen o destino)" value={cuenta} onChange={(evento) => setCuenta(evento.target.value)} />
+        </label>
+        <div className="chips" role="group" aria-label="Filtrar por tipo">
+          <button type="button" className="chip" aria-pressed={tipo === "todos"} onClick={() => setTipo("todos")}>
+            Todos
+          </button>
+          {Object.entries(ETIQUETA_TIPO).map(([valor, texto]) => (
+            <button key={valor} type="button" className="chip" aria-pressed={tipo === valor} onClick={() => setTipo(valor)}>
+              {texto}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Contenido
@@ -89,7 +78,10 @@ export function MovimientosPage() {
                         {formatoFechaLarga(t.fecha)}
                       </td>
                       <td data-etiqueta="Tipo">
-                        {ETIQUETA_TIPO[t.tipo] || t.tipo}
+                        <span className="celda-tipo">
+                          <IconoMovimiento tipo={t.tipo} />
+                          {ETIQUETA_TIPO[t.tipo] || t.tipo}
+                        </span>
                         {t.descripcion ? <div className="texto-3">{t.descripcion}</div> : null}
                       </td>
                       <td data-etiqueta="Origen" className="num">

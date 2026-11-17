@@ -1,13 +1,14 @@
-/**
- * Los tres estados que toda vista con datos debe cubrir.
- */
-export function Cargando({ etiqueta = "Cargando información" }) {
+import { ArrowClockwise, WarningCircle } from "@phosphor-icons/react";
+
+/** Esqueleto con la forma del contenido, no un spinner. */
+export function Cargando({ etiqueta = "Cargando información", filas = 4 }) {
   return (
-    <div className="cargando" role="status" aria-live="polite">
+    <div className="esqueleto" role="status" aria-live="polite">
       <span className="solo-lector">{etiqueta}…</span>
-      <span aria-hidden="true" />
-      <span aria-hidden="true" />
-      <span aria-hidden="true" />
+      <span className="hueso hueso--titulo" aria-hidden="true" />
+      {Array.from({ length: filas }, (_, i) => (
+        <span key={i} className="hueso hueso--fila" aria-hidden="true" style={{ width: `${92 - i * 9}%` }} />
+      ))}
     </div>
   );
 }
@@ -24,12 +25,13 @@ export function Vacio({ titulo, children, accion }) {
 
 export function ErrorVista({ error, alReintentar }) {
   return (
-    <div className="estado-vista" role="alert">
+    <div className="estado-vista estado-vista--error" role="alert">
+      <WarningCircle size={28} aria-hidden="true" />
       <strong>No se pudo cargar esta sección.</strong>
       <p>{error?.message || "Error desconocido."}</p>
       {alReintentar ? (
         <button type="button" className="boton boton--secundario" onClick={alReintentar}>
-          Reintentar
+          <ArrowClockwise size={16} aria-hidden="true" /> Reintentar
         </button>
       ) : null}
     </div>

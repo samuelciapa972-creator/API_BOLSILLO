@@ -1,31 +1,23 @@
-import { useEffect, useState } from "react";
-import { CLAVE_TEMA, aplicarTema, leerTema } from "../utils/tema";
+import { Desktop, Moon, Sun } from "@phosphor-icons/react";
+import { useTema } from "../hooks/useTema";
+import { rotarTema } from "../utils/tema";
 
-const SIGUIENTE = { sistema: "claro", claro: "oscuro", oscuro: "sistema" };
-const TEXTO = { sistema: "Tema: sistema", claro: "Tema: claro", oscuro: "Tema: oscuro" };
+const TEXTO = { sistema: "Tema del sistema", claro: "Tema claro", oscuro: "Tema oscuro" };
+const ICONO = { sistema: Desktop, claro: Sun, oscuro: Moon };
 
-export function SelectorTema() {
-  const [tema, setTema] = useState(leerTema);
-
-  // Sincroniza con sistemas externos (DOM y localStorage), sin setState.
-  useEffect(() => {
-    aplicarTema(tema);
-    try {
-      localStorage.setItem(CLAVE_TEMA, tema);
-    } catch {
-      // Sin almacenamiento: el tema dura hasta recargar.
-    }
-  }, [tema]);
-
+export function SelectorTema({ conTexto = false }) {
+  const tema = useTema();
+  const Icono = ICONO[tema] || Desktop;
   return (
     <button
       type="button"
-      className="boton boton--fantasma"
-      onClick={() => setTema((actual) => SIGUIENTE[actual])}
+      className={`boton boton--fantasma ${conTexto ? "" : "boton--icono"}`}
+      onClick={rotarTema}
       aria-label={`${TEXTO[tema]}. Cambiar tema`}
-      title="Cambiar entre tema del sistema, claro y oscuro"
+      title={`${TEXTO[tema]} (clic para cambiar)`}
     >
-      {TEXTO[tema]}
+      <Icono size={18} weight="regular" aria-hidden="true" />
+      {conTexto ? <span>{TEXTO[tema]}</span> : null}
     </button>
   );
 }
