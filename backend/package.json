@@ -1,0 +1,39 @@
+{
+  "name": "api-bolsillo",
+  "version": "1.0.0",
+  "description": "API REST para una billetera virtual sencilla (usuarios, cuentas, transacciones y bolsillos de ahorro)",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "db:probar": "node scripts/probar-conexion.js",
+    "seed:admin": "node src/scripts/crearAdmin.js",
+    "sast": "eslint --config eslint.security.config.mjs src scripts",
+    "test:seguridad": "node scripts/pruebas-seguridad-api.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "express-validator": "^7.2.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-security": "^4.2.1",
+    "globals": "^17.14.0",
+    "nodemon": "^3.1.14"
+  },
+  "overrides": {
+    "glob": "^14.0.6",
+    "minimatch": "^11.0.9"
+  }
+}

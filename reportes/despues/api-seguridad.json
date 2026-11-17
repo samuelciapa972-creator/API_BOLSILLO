@@ -1,0 +1,226 @@
+{
+  "fecha": "2026-11-17T00:19:00.457Z",
+  "api": "http://localhost:3000",
+  "total": 27,
+  "aprobadas": 27,
+  "fallidas": 0,
+  "datosSinteticos": "*.final.724235@example.com",
+  "resultados": [
+    {
+      "id": "API-01",
+      "categoria": "Autenticación",
+      "prueba": "Login correcto devuelve JWT y no expone el hash",
+      "esperado": "200 + token, sin password/passwordHash",
+      "obtenido": "200, token=true, hash=false",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-02",
+      "categoria": "Autenticación",
+      "prueba": "Clave errónea y correo inexistente responden igual (sin enumeración)",
+      "esperado": "401 y mismo mensaje",
+      "obtenido": "401/401, mismo mensaje=true",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-03",
+      "categoria": "Exposición de datos",
+      "prueba": "Un error de validación no devuelve la contraseña enviada (CWE-209)",
+      "esperado": "400 sin el valor enviado",
+      "obtenido": "400, contiene la clave=false",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-04",
+      "categoria": "Mass assignment",
+      "prueba": "Registro con rol=administrador no eleva privilegios",
+      "esperado": "201 con rol cliente",
+      "obtenido": "201, rol=cliente",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-05",
+      "categoria": "JWT",
+      "prueba": "Sin token",
+      "esperado": "401",
+      "obtenido": "401",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-06",
+      "categoria": "JWT",
+      "prueba": "Firma alterada",
+      "esperado": "401",
+      "obtenido": "401",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-07",
+      "categoria": "JWT",
+      "prueba": "Token alg=none con rol administrador",
+      "esperado": "401",
+      "obtenido": "401",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-08",
+      "categoria": "JWT",
+      "prueba": "Token con firma válida pero expirado",
+      "esperado": "401",
+      "obtenido": "401",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-09",
+      "categoria": "RBAC",
+      "prueba": "Cliente consulta indicadores administrativos",
+      "esperado": "403",
+      "obtenido": "403",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-10",
+      "categoria": "RBAC",
+      "prueba": "Auditor consulta indicadores (solo agregados, sin datos personales)",
+      "esperado": "200 sin correos, nombres ni documentos",
+      "obtenido": "200, sin datos personales=true",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-11",
+      "categoria": "RBAC",
+      "prueba": "Auditor intenta depositar",
+      "esperado": "403",
+      "obtenido": "403",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-12",
+      "categoria": "BOLA/IDOR",
+      "prueba": "Cliente B lee la cuenta de A",
+      "esperado": "403 o 404",
+      "obtenido": "403",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-13",
+      "categoria": "BOLA/IDOR",
+      "prueba": "Cliente B transfiere desde la cuenta de A",
+      "esperado": "403 o 404",
+      "obtenido": "403",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-14",
+      "categoria": "BOLA/IDOR",
+      "prueba": "Cliente B lee el extracto de A",
+      "esperado": "403 o 404",
+      "obtenido": "403",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-15",
+      "categoria": "Lógica de negocio",
+      "prueba": "Retiro mayor al saldo disponible",
+      "esperado": "4xx y saldo sin cambios",
+      "obtenido": "409, saldo 500000 → 500000",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-16",
+      "categoria": "Validación",
+      "prueba": "Monto superior al tope de 2.000.000",
+      "esperado": "400",
+      "obtenido": "400",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-17",
+      "categoria": "Inyección",
+      "prueba": "SQL en parámetro de ruta (1 OR 1=1)",
+      "esperado": "400",
+      "obtenido": "400",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-18",
+      "categoria": "Inyección",
+      "prueba": "SQL en el login",
+      "esperado": "400 o 401, nunca 200 ni 500",
+      "obtenido": "400",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-19",
+      "categoria": "Manejo de errores",
+      "prueba": "JSON mal formado",
+      "esperado": "400 sin stack trace",
+      "obtenido": "400, stack=false",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-20",
+      "categoria": "Disponibilidad",
+      "prueba": "Cuerpo mayor a 10 kB",
+      "esperado": "413",
+      "obtenido": "413",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-21",
+      "categoria": "CORS",
+      "prueba": "Origen no permitido",
+      "esperado": "Sin Access-Control-Allow-Origin",
+      "obtenido": "ACAO=ausente",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-22",
+      "categoria": "CORS",
+      "prueba": "Origen de la SPA (localhost:5173)",
+      "esperado": "ACAO = http://localhost:5173",
+      "obtenido": "ACAO=http://localhost:5173",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-23",
+      "categoria": "Cabeceras",
+      "prueba": "Cabeceras de seguridad (Helmet)",
+      "esperado": "sin X-Powered-By; nosniff, HSTS y CSP presentes",
+      "obtenido": "{\"x-powered-by\":null,\"x-content-type-options\":\"nosniff\",\"strict-transport-security\":true,\"content-security-policy\":true}",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-24",
+      "categoria": "Manejo de errores",
+      "prueba": "Ruta inexistente sin credenciales",
+      "esperado": "401 o 404 con mensaje genérico, sin detalles internos",
+      "obtenido": "401 API Key requerida",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-25",
+      "categoria": "Recuperación",
+      "prueba": "Un código de respaldo sirve una sola vez",
+      "esperado": "1.º 200, 2.º 400",
+      "obtenido": "201 → 200 → 400",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-26",
+      "categoria": "Sesión",
+      "prueba": "Tras cambiar la contraseña el JWT anterior queda revocado",
+      "esperado": "200 → token viejo 401 → login nuevo OK",
+      "obtenido": "200 → 401 → nuevo token=true",
+      "resultado": "APROBADA"
+    },
+    {
+      "id": "API-27",
+      "categoria": "Fuerza bruta",
+      "prueba": "11 intentos fallidos de login seguidos",
+      "esperado": "429 al superar 10 fallos en 15 min por IP",
+      "obtenido": "401,401,401,401,401,401,401,429,429,429,429",
+      "resultado": "APROBADA"
+    }
+  ]
+}

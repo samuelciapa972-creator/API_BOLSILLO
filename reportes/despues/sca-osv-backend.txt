@@ -1,0 +1,5 @@
+Starting filesystem walk for root: /
+Scanned /src/package-lock.json file and found 162 packages
+End status: 0 dirs visited, 1 inodes visited, 1 Extract calls, 3.928102ms elapsed, 3.928162ms wall time
+
+No issues found

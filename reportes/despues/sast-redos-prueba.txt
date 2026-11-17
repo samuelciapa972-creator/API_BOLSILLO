@@ -1,0 +1,4 @@
+1000 caracteres: 0.023023 ms
+10000 caracteres: 0.009287 ms
+100000 caracteres: 0.058851 ms
+1000000 caracteres: 0.864251 ms

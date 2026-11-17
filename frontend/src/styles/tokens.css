@@ -1,0 +1,112 @@
+/*
+ * Tokens de Bolsillo ("Libreta de ahorro"). Ver DESIGN.md.
+ * Papel y tinta para la estructura; cobre solo para lo apartado.
+ */
+:root {
+  --papel: #f5f0e6;
+  --hoja: #fbf8f1;
+  --hoja-hundida: #eee7d8;
+  --tinta: #1e3a2d;
+  --tinta-2: #3d4f45;
+  --tinta-3: #56645c;
+  --linea: rgba(30, 58, 45, 0.16);
+  --linea-suave: rgba(30, 58, 45, 0.09);
+  --linea-fuerte: rgba(30, 58, 45, 0.34);
+
+  --accion-fondo: #1e3a2d;
+  --accion-fondo-hover: #2a4c3b;
+  --accion-texto: #f5f0e6;
+
+  /* Tapa de la libreta (panel de acceso): verde oscuro en ambos temas. */
+  --tapa: #1e3a2d;
+  --tapa-texto: #f5f0e6;
+
+  --cobre: #8f4b1c;
+  --cobre-tramo: #b4672f;
+  --cobre-suave: #f2e3d1;
+  --disponible-tramo: #2f6247;
+
+  --debito: #9b3328;
+  --credito: #276140;
+  --aviso: #7d5300;
+  --aviso-suave: #f6ead0;
+  --error-suave: #f6e1dc;
+  --exito-suave: #dfeee3;
+
+  --sombra-hoja: 0 1px 0 rgba(30, 58, 45, 0.05), 0 1px 3px rgba(30, 58, 45, 0.05);
+  --sombra-dialogo: 0 0 0 1px rgba(30, 58, 45, 0.08), 0 18px 40px -12px rgba(30, 58, 45, 0.28);
+
+  --fuente-cifras: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  --fuente-ui: "Instrument Sans Variable", "Segoe UI", system-ui, sans-serif;
+
+  --radio-control: 4px;
+  --radio-hoja: 8px;
+  --radio-dialogo: 12px;
+
+  --curva-salida: cubic-bezier(0.23, 1, 0.32, 1);
+
+  color-scheme: light;
+}
+
+/* Libreta de noche: mismo tono verde, solo cambia la luz. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #111713;
+    --hoja: #18201b;
+    --hoja-hundida: #0d120f;
+    --tinta: #ece5d6;
+    --tinta-2: #cbc4b5;
+    --tinta-3: #a1aaa2;
+    --linea: rgba(236, 229, 214, 0.14);
+    --linea-suave: rgba(236, 229, 214, 0.07);
+    --linea-fuerte: rgba(236, 229, 214, 0.3);
+    --accion-fondo: #cfe3d2;
+    --accion-fondo-hover: #bcd8c1;
+    --accion-texto: #10241a;
+    --tapa: #1a3326;
+    --tapa-texto: #ece5d6;
+    --cobre: #e3a26b;
+    --cobre-tramo: #c47a40;
+    --cobre-suave: #33261a;
+    --disponible-tramo: #6fae86;
+    --debito: #f09a8c;
+    --credito: #92cfa5;
+    --aviso: #e6c06e;
+    --aviso-suave: #2e2716;
+    --error-suave: #33201c;
+    --exito-suave: #1b2c21;
+    --sombra-hoja: 0 0 0 1px rgba(236, 229, 214, 0.04);
+    --sombra-dialogo: 0 0 0 1px rgba(236, 229, 214, 0.1), 0 18px 40px -12px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --papel: #111713;
+  --hoja: #18201b;
+  --hoja-hundida: #0d120f;
+  --tinta: #ece5d6;
+  --tinta-2: #cbc4b5;
+  --tinta-3: #a1aaa2;
+  --linea: rgba(236, 229, 214, 0.14);
+  --linea-suave: rgba(236, 229, 214, 0.07);
+  --linea-fuerte: rgba(236, 229, 214, 0.3);
+  --accion-fondo: #cfe3d2;
+  --accion-fondo-hover: #bcd8c1;
+  --accion-texto: #10241a;
+  --tapa: #1a3326;
+  --tapa-texto: #ece5d6;
+  --cobre: #e3a26b;
+  --cobre-tramo: #c47a40;
+  --cobre-suave: #33261a;
+  --disponible-tramo: #6fae86;
+  --debito: #f09a8c;
+  --credito: #92cfa5;
+  --aviso: #e6c06e;
+  --aviso-suave: #2e2716;
+  --error-suave: #33201c;
+  --exito-suave: #1b2c21;
+  --sombra-hoja: 0 0 0 1px rgba(236, 229, 214, 0.04);
+  --sombra-dialogo: 0 0 0 1px rgba(236, 229, 214, 0.1), 0 18px 40px -12px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}

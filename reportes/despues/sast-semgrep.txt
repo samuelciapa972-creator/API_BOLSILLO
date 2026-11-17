@@ -1,0 +1,118 @@
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 79 files tracked by git with 714 Code rules:
+                                                                                                                        
+  Language      Rules   Files          Origin      Rules                                                                
+ ─────────────────────────────        ───────────────────                                                               
+  <multilang>      40      79          Community     714                                                                
+  js              184      77                                                                                           
+                                                                                                                        
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 9 (9 blocking)
+ • Rules run: 224
+ • Targets scanned: 79
+ • Parsed lines: ~100.0%
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+Ran 224 rules on 79 files: 9 findings.
+
+A new version of Semgrep is available. See https://semgrep.dev/docs/upgrading
+                   
+                   
+┌─────────────────┐
+│ 9 Code Findings │
+└─────────────────┘
+                      
+    backend/src/app.js
+     ❱ ajinabraham.njsscan.good.good_ratelimiting.rate_limit_control
+          ❰❰ Blocking ❱❱
+          This application has API rate limiting controls.
+          Details: https://sg.run/Xx4b                    
+                                                          
+           26┆ } = require(
+           27┆   "express-rate-limit"
+           28┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_x_powered_by
+          ❰❰ Blocking ❱❱
+          Default X-Powered-By is removed or modified. More information: https://helmetjs.github.io/docs/hide-
+          powered-by/                                                                                         
+          Details: https://sg.run/YeP4                                                                        
+                                                                                                              
+          135┆ app.disable(
+          136┆   "x-powered-by"
+          137┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_dns_prefetch
+          ❰❰ Blocking ❱❱
+          X-DNS-Prefetch-Control header is present and DNS Prefetch Control is enabled. More information:
+          https://helmetjs.github.io/docs/dns-prefetch-control/                                          
+          Details: https://sg.run/lAX9                                                                   
+                                                                                                         
+          140┆ app.use(
+          141┆   helmet()
+          142┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_hsts
+          ❰❰ Blocking ❱❱
+          HSTS header is present. More information: https://helmetjs.github.io/docs/hsts/
+          Details: https://sg.run/6peB                                                   
+                                                                                         
+          140┆ app.use(
+          141┆   helmet()
+          142┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_ienoopen
+          ❰❰ Blocking ❱❱
+          X-Download-Options header is present. More information: https://helmetjs.github.io/docs/ienoopen/
+          Details: https://sg.run/oW9R                                                                     
+                                                                                                           
+          140┆ app.use(
+          141┆   helmet()
+          142┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_nosniff
+          ❰❰ Blocking ❱❱
+          Content-Type-Options header is present. More information: https://helmetjs.github.io/docs/dont-
+          sniff-mimetype/                                                                                
+          Details: https://sg.run/zXbW                                                                   
+                                                                                                         
+          140┆ app.use(
+          141┆   helmet()
+          142┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_x_powered_by
+          ❰❰ Blocking ❱❱
+          Default X-Powered-By is removed or modified. More information: https://helmetjs.github.io/docs/hide-
+          powered-by/                                                                                         
+          Details: https://sg.run/YeP4                                                                        
+                                                                                                              
+          140┆ app.use(
+          141┆   helmet()
+          142┆ );
+   
+     ❱ ajinabraham.njsscan.good.good_helmet_checks.helmet_header_xss_filter
+          ❰❰ Blocking ❱❱
+          X-XSS-Protection header is present. More information: https://helmetjs.github.io/docs/xss-filter/
+          Details: https://sg.run/23QD                                                                     
+                                                                                                           
+          140┆ app.use(
+          141┆   helmet()
+          142┆ );
+                                     
+    backend/src/routes/auth.routes.js
+     ❱ ajinabraham.njsscan.good.good_ratelimiting.rate_limit_control
+          ❰❰ Blocking ❱❱
+          This application has API rate limiting controls.
+          Details: https://sg.run/Xx4b                    
+                                                          
+           46┆ } = require("express-rate-limit");
+

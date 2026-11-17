@@ -1,0 +1,33 @@
+
+> api-bolsillo@1.0.0 test:seguridad
+> node scripts/pruebas-seguridad-api.js
+
+✓ API-01 Login correcto devuelve JWT y no expone el hash → 200, token=true, hash=false
+✓ API-02 Clave errónea y correo inexistente responden igual (sin enumeración) → 401/401, mismo mensaje=true
+✓ API-03 Un error de validación no devuelve la contraseña enviada (CWE-209) → 400, contiene la clave=false
+✓ API-04 Registro con rol=administrador no eleva privilegios → 201, rol=cliente
+✓ API-05 Sin token → 401
+✓ API-06 Firma alterada → 401
+✓ API-07 Token alg=none con rol administrador → 401
+✓ API-08 Token con firma válida pero expirado → 401
+✓ API-09 Cliente consulta indicadores administrativos → 403
+✓ API-10 Auditor consulta indicadores (solo agregados, sin datos personales) → 200, sin datos personales=true
+✓ API-11 Auditor intenta depositar → 403
+✓ API-12 Cliente B lee la cuenta de A → 403
+✓ API-13 Cliente B transfiere desde la cuenta de A → 403
+✓ API-14 Cliente B lee el extracto de A → 403
+✓ API-15 Retiro mayor al saldo disponible → 409, saldo 500000 → 500000
+✓ API-16 Monto superior al tope de 2.000.000 → 400
+✓ API-17 SQL en parámetro de ruta (1 OR 1=1) → 400
+✓ API-18 SQL en el login → 400
+✓ API-19 JSON mal formado → 400, stack=false
+✓ API-20 Cuerpo mayor a 10 kB → 413
+✓ API-21 Origen no permitido → ACAO=ausente
+✓ API-22 Origen de la SPA (localhost:5173) → ACAO=http://localhost:5173
+✓ API-23 Cabeceras de seguridad (Helmet) → {"x-powered-by":null,"x-content-type-options":"nosniff","strict-transport-security":true,"content-security-policy":true}
+✓ API-24 Ruta inexistente sin credenciales → 401 API Key requerida
+✓ API-25 Un código de respaldo sirve una sola vez → 201 → 200 → 400
+✓ API-26 Tras cambiar la contraseña el JWT anterior queda revocado → 200 → 401 → nuevo token=true
+✓ API-27 11 intentos fallidos de login seguidos → 401,401,401,401,401,401,401,429,429,429,429
+
+27/27 pruebas aprobadas

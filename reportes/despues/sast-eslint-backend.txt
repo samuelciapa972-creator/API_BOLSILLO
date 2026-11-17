@@ -1,0 +1,16 @@
+
+> api-bolsillo@1.0.0 sast
+> eslint --config eslint.security.config.mjs src scripts
+
+
+/home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/backend/src/controllers/bolsillos.controller.js
+  534:7  warning  Variable Assigned to Object Injection Sink  security/detect-object-injection
+
+/home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/backend/src/controllers/cuentas.controller.js
+  518:7  warning  Variable Assigned to Object Injection Sink  security/detect-object-injection
+
+/home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/backend/src/middlewares/auth.validator.js
+  220:14  warning  Unsafe Regular Expression  security/detect-unsafe-regex
+
+✖ 3 problems (0 errors, 3 warnings)
+

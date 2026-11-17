@@ -1,0 +1,201 @@
+newman
+
+API Bolsillo — Bloque 7 (PostgreSQL)
+
+❏ 1. Preparación
+↳ Ruta principal (sin API Key)
+  GET http://localhost:3000/ [200 OK, 927B, 13ms]
+  ✓  Status 200
+
+↳ Login administrador
+  POST http://localhost:3000/api/auth/login [200 OK, 1.34kB, 263ms]
+  ✓  Status 200
+  ✓  Rol administrador
+
+↳ Registro cliente A (enviando rol administrador)
+  POST http://localhost:3000/api/auth/registro [201 Created, 1.17kB, 452ms]
+  ✓  Status 201
+  ✓  El rol enviado se ignora: cliente
+
+↳ Login cliente A
+  POST http://localhost:3000/api/auth/login [200 OK, 1.35kB, 255ms]
+  ✓  Status 200
+
+↳ Registro cliente B
+  POST http://localhost:3000/api/auth/registro [201 Created, 1.17kB, 446ms]
+  ✓  Status 201
+
+↳ Login cliente B
+  POST http://localhost:3000/api/auth/login [200 OK, 1.35kB, 258ms]
+  ✓  Status 200
+
+↳ Crear titular A vinculado a su login
+  POST http://localhost:3000/api/usuarios [201 Created, 1.22kB, 563ms]
+  ✓  Status 201
+  ✓  estado lo fija el servidor (mass assignment)
+
+↳ Crear titular B vinculado a su login
+  POST http://localhost:3000/api/usuarios [201 Created, 1.22kB, 561ms]
+  ✓  Status 201
+
+↳ Crear cuenta A (enviando saldoTotal)
+  POST http://localhost:3000/api/cuentas [201 Created, 1.16kB, 285ms]
+  ✓  Status 201
+  ✓  saldo 0, activa y número generado por la BD
+
+↳ Crear cuenta B
+  POST http://localhost:3000/api/cuentas [201 Created, 1.16kB, 283ms]
+  ✓  Status 201
+
+❏ 2. Movimientos de dinero
+↳ Depósito 100.000 en cuenta A
+  POST http://localhost:3000/api/transacciones/deposito [201 Created, 1.26kB, 563ms]
+  ✓  Status 201
+  ✓  Tipo depósito
+
+↳ Crear bolsillo (enviando saldo)
+  POST http://localhost:3000/api/bolsillos [201 Created, 1.2kB, 837ms]
+  ✓  Status 201
+  ✓  saldo 0 (mass assignment)
+
+↳ Apartar 80.000 en el bolsillo
+  POST http://localhost:3000/api/bolsillos/6/apartar [201 Created, 1.39kB, 1208ms]
+  ✓  Status 201
+  ✓  Bolsillo con 80.000 y transacción apartado
+
+↳ Saldo de la cuenta A
+  GET http://localhost:3000/api/cuentas/21/saldo [200 OK, 1.1kB, 466ms]
+  ✓  Status 200
+  ✓  Total 100.000, apartado 80.000, disponible 20.000
+
+↳ CASO ESTRELLA: retirar 50.000 con 20.000 disponibles
+  POST http://localhost:3000/api/transacciones/retiro [409 Conflict, 1.08kB, 746ms]
+  ✓  Status 409
+
+↳ Retiro 10.000,50
+  POST http://localhost:3000/api/transacciones/retiro [201 Created, 1.24kB, 929ms]
+  ✓  Status 201
+
+↳ Transferencia A → B 5.000
+  POST http://localhost:3000/api/transacciones/transferencia [201 Created, 1.25kB, 1022ms]
+  ✓  Status 201
+
+↳ Devolver más de lo que tiene el bolsillo
+  POST http://localhost:3000/api/bolsillos/6/devolver [409 Conflict, 1.08kB, 835ms]
+  ✓  Status 409
+
+↳ Devolver 80.000
+  POST http://localhost:3000/api/bolsillos/6/devolver [201 Created, 1.39kB, 1021ms]
+  ✓  Status 201
+  ✓  Bolsillo en 0
+
+↳ Archivar bolsillo vacío (administrador)
+  PATCH http://localhost:3000/api/bolsillos/6/estado [200 OK, 1.21kB, 282ms]
+  ✓  Status 200
+
+↳ Libro contable de la cuenta A
+  GET http://localhost:3000/api/cuentas/21/transacciones [200 OK, 1.9kB, 466ms]
+  ✓  Status 200
+  ✓  5 movimientos: depósito, apartado, retiro, transferencia, devolución
+
+↳ Saldo final de la cuenta A
+  GET http://localhost:3000/api/cuentas/21/saldo [200 OK, 1.1kB, 465ms]
+  ✓  Status 200
+  ✓  100.000 − 10.000,50 − 5.000 = 84.999,50
+
+❏ 3. Validaciones
+↳ Monto con 3 decimales
+  POST http://localhost:3000/api/transacciones/retiro [400 Bad Request, 1.16kB, 97ms]
+  ✓  Status 400
+
+↳ Monto fuera de rango (5.000.000)
+  POST http://localhost:3000/api/transacciones/deposito [400 Bad Request, 1.16kB, 95ms]
+  ✓  Status 400
+
+↳ Transferencia a la misma cuenta
+  POST http://localhost:3000/api/transacciones/transferencia [409 Conflict, 1.08kB, 557ms]
+  ✓  Status 409
+
+↳ ID inválido
+  GET http://localhost:3000/api/cuentas/abc [400 Bad Request, 1.15kB, 95ms]
+  ✓  Status 400
+
+↳ Cuenta inexistente (administrador)
+  GET http://localhost:3000/api/cuentas/999999999 [404 Not Found, 1.04kB, 188ms]
+  ✓  Status 404
+
+↳ Bolsillo con nombre duplicado (mayúsculas)
+  POST http://localhost:3000/api/bolsillos [409 Conflict, 1.07kB, 649ms]
+  ✓  Status 409
+
+❏ 4. Seguridad (API Key, JWT, RBAC, BOLA)
+↳ Sin API Key
+  GET http://localhost:3000/api/cuentas [401 Unauthorized, 1.06kB, 2ms]
+  ✓  Status 401
+
+↳ Sin JWT
+  GET http://localhost:3000/api/cuentas [401 Unauthorized, 1.06kB, 1ms]
+  ✓  Status 401
+
+↳ Cliente lista todas las cuentas (RBAC)
+  GET http://localhost:3000/api/cuentas [403 Forbidden, 1.07kB, 94ms]
+  ✓  Status 403
+
+↳ B consulta la cuenta de A (BOLA)
+  GET http://localhost:3000/api/cuentas/21 [403 Forbidden, 1.07kB, 278ms]
+  ✓  Status 403
+
+↳ B retira de la cuenta de A (BOLA)
+  POST http://localhost:3000/api/transacciones/retiro [403 Forbidden, 1.07kB, 280ms]
+  ✓  Status 403
+
+↳ B consulta el bolsillo de A (BOLA)
+  GET http://localhost:3000/api/bolsillos/6 [403 Forbidden, 1.07kB, 372ms]
+  ✓  Status 403
+
+↳ B: mis cuentas (identidad desde el JWT)
+  GET http://localhost:3000/api/cuentas/mis-cuentas [200 OK, 1.11kB, 280ms]
+  ✓  Status 200
+  ✓  Solo la cuenta de B, con la transferencia recibida
+
+↳ B ve la transferencia que recibió
+  GET http://localhost:3000/api/cuentas/22/transacciones [200 OK, 1.18kB, 464ms]
+  ✓  Status 200
+  ✓  Una transferencia entrante
+
+❏ 5. Integridad
+↳ Las transacciones no se editan (sin PUT)
+  PUT http://localhost:3000/api/transacciones/1 [404 Not Found, 1.04kB, 2ms]
+  ✓  Status 404
+
+↳ Las transacciones no se eliminan (sin DELETE)
+  DELETE http://localhost:3000/api/transacciones/1 [404 Not Found, 1.04kB, 2ms]
+  ✓  Status 404
+
+↳ Eliminar titular con cuentas
+  DELETE http://localhost:3000/api/usuarios/19 [409 Conflict, 1.07kB, 280ms]
+  ✓  Status 409
+
+↳ Eliminar bolsillo con transacciones
+  DELETE http://localhost:3000/api/bolsillos/6 [409 Conflict, 1.09kB, 282ms]
+  ✓  Status 409
+
+┌─────────────────────────┬────────────────────┬────────────────────┐
+│                         │           executed │             failed │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              iterations │                  1 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│                requests │                 40 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│            test-scripts │                 40 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│      prerequest-scripts │                 40 │                  0 │
+├─────────────────────────┼────────────────────┼────────────────────┤
+│              assertions │                 53 │                  0 │
+├─────────────────────────┴────────────────────┴────────────────────┤
+│ total run duration: 16.8s                                         │
+├───────────────────────────────────────────────────────────────────┤
+│ total data received: 6.81kB (approx)                              │
+├───────────────────────────────────────────────────────────────────┤
+│ average response time: 405ms [min: 1ms, max: 1208ms, s.d.: 306ms] │
+└───────────────────────────────────────────────────────────────────┘
