@@ -1,0 +1,15 @@
+Starting filesystem walk for root: /
+Scanned /antes/package-lock.json file and found 172 packages
+End status: 0 dirs visited, 1 inodes visited, 1 Extract calls, 4.669169ms elapsed, 4.669209ms wall time
+
+Total 4 packages affected by 4 known vulnerabilities (0 Critical, 1 High, 3 Medium, 0 Low, 0 Unknown) from 1 ecosystem.
+4 vulnerabilities can be fixed.
+
++-------------------------------------+------+-----------+-------------+---------+---------------+-------------------------+
+| OSV URL                             | CVSS | ECOSYSTEM | PACKAGE     | VERSION | FIXED VERSION | SOURCE                  |
++-------------------------------------+------+-----------+-------------+---------+---------------+-------------------------+
+| https://osv.dev/GHSA-27r3-jxmh-p828 | 7.5  | npm       | body-parser | 1.20.8  | 1.20.9        | antes/package-lock.json |
+| https://osv.dev/GHSA-3g3m-2fjr-6pw4 | 6.3  | npm       | glob        | 11.1.0  | 14.0.2        | antes/package-lock.json |
+| https://osv.dev/GHSA-g3hv-75wg-m249 | 6.9  | npm       | minimatch   | 10.2.6  | 11.0.1        | antes/package-lock.json |
+| https://osv.dev/GHSA-6pq8-jhm2-2vcw | 6.3  | npm       | qs          | 6.16.0  | 6.16.1        | antes/package-lock.json |
++-------------------------------------+------+-----------+-------------+---------+---------------+-------------------------+
