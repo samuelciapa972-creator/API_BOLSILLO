@@ -1,1 +1,29 @@
-found 0 vulnerabilities
+# npm audit report
+
+picomatch  *
+Severity: high
+picomatch vulnerable to ReDoS through single-branch repeated extglobs - https://github.com/advisories/GHSA-fc5q-39xc-vjpf
+fix available via `npm audit fix --force`
+Will install nodemon@1.19.4, which is a breaking change
+node_modules/picomatch
+  anymatch  >=3.0.0
+  Depends on vulnerable versions of picomatch
+  node_modules/anymatch
+    chokidar  3.0.0 - 3.6.0
+    Depends on vulnerable versions of anymatch
+    Depends on vulnerable versions of readdirp
+    node_modules/chokidar
+      nodemon  0.0.0-development || >=2.0.0
+      Depends on vulnerable versions of chokidar
+      node_modules/nodemon
+  readdirp  3.0.0 - 3.6.0
+  Depends on vulnerable versions of picomatch
+  node_modules/readdirp
+
+5 high severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

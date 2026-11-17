@@ -1,19 +1,23 @@
 
-> bolsillo-frontend@0.0.0 sast
-> eslint --config eslint.security.config.js src
-
-
 /home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/frontend/src/components/Extracto.jsx
-  39:16  warning  Generic Object Injection Sink  security/detect-object-injection
+  65:22  warning  Generic Object Injection Sink  security/detect-object-injection
 
 /home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/frontend/src/components/FormularioMovimiento.jsx
-   52:18  warning  Generic Object Injection Sink  security/detect-object-injection
-  130:37  warning  Generic Object Injection Sink  security/detect-object-injection
+   75:18  warning  Generic Object Injection Sink  security/detect-object-injection
+  207:49  warning  Generic Object Injection Sink  security/detect-object-injection
+  207:95  warning  Generic Object Injection Sink  security/detect-object-injection
+
+/home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/frontend/src/components/IconoMovimiento.jsx
+  13:17  warning  Generic Object Injection Sink  security/detect-object-injection
 
 /home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/frontend/src/components/SelectorTema.jsx
-  24:42  warning  Generic Object Injection Sink  security/detect-object-injection
-  25:22  warning  Generic Object Injection Sink  security/detect-object-injection
-  28:8   warning  Generic Object Injection Sink  security/detect-object-injection
+  10:17  warning  Generic Object Injection Sink  security/detect-object-injection
+  16:22  warning  Generic Object Injection Sink  security/detect-object-injection
+  17:17  warning  Generic Object Injection Sink  security/detect-object-injection
+  20:26  warning  Generic Object Injection Sink  security/detect-object-injection
 
-✖ 6 problems (0 errors, 6 warnings)
+/home/samuelc/Descargas/API_BOLSILLO/API_BOLSILLO/frontend/src/utils/tema.js
+  33:12  warning  Generic Object Injection Sink  security/detect-object-injection
+
+✖ 10 problems (0 errors, 10 warnings)
 

@@ -11,13 +11,13 @@ Fecha de ejecución: 2026-11-16 · Entorno: local (API en `:3000`, SPA en `:5173
 
 | Prueba | Herramienta | Antes | Después |
 |---|---|---|---|
-| SCA backend | `npm audit` / OSV-Scanner | 6 avisos (1 alto, 5 moderados) / 4 paquetes (CVSS máx. 7.5) | **0 / 0** |
-| SCA frontend | `npm audit` / OSV-Scanner | 0 / 0 | **0 / 0** |
+| SCA backend | `npm audit` / OSV-Scanner | 6 avisos (1 alto, 5 moderados) / 4 paquetes (CVSS máx. 7.5) | **0 en producción** · 1 aviso solo de desarrollo (ver R-01) |
+| SCA frontend | `npm audit` / OSV-Scanner | 0 / 0 | **0 en producción** · 1 aviso solo de desarrollo (ver R-01) |
 | SAST | Semgrep (7 rulesets, 79 archivos) | 0 vulnerabilidades (9 controles positivos) | **0** |
-| SAST | ESLint + `eslint-plugin-security` | backend 3 avisos · frontend 1 error | backend 3 · frontend 6 avisos, **todos falsos positivos analizados**, 0 errores |
+| SAST | ESLint + `eslint-plugin-security` | backend 3 avisos · frontend 1 error | backend 3 · frontend 10 avisos (tras el rediseño), **todos falsos positivos analizados**, 0 errores |
 | SAST manual | revisión de código | eco de contraseñas en errores 400 (CWE-209) | **corregido** |
 | DAST API | OWASP ZAP API scan (OpenAPI, activo, JWT de auditor) | 106 URL · 0 fallos · 1 aviso bajo | **0 fallos** · 1 aviso (falso positivo) |
-| DAST frontend | OWASP ZAP baseline (build de producción) | 0 fallos · 8 avisos (cabeceras ausentes) | **0 fallos** · 3 avisos informativos |
+| DAST frontend | OWASP ZAP baseline (build de producción) | 0 fallos · 8 avisos (cabeceras ausentes) | **0 fallos** · 3 avisos informativos (repetido tras el rediseño, 2026-11-17) |
 | API | Newman (colección Postman) | | **40 peticiones · 53/53 aserciones** |
 | API | `npm run test:seguridad` | 25/27 (2 hallazgos) | **27/27** |
 
@@ -62,6 +62,12 @@ cd backend && DAST_EMAIL=<auditor> DAST_PASSWORD=<clave> \
 | H-04 | Pruebas de API | Los restablecimientos de contraseña exigían API Key: la pantalla de recuperación de la SPA no podía funcionar | Rutas públicas protegidas por token/código de un solo uso, validación y `limiteReset` |
 | H-05 | DAST | El frontend no enviaba CSP, anti-clickjacking, `nosniff`, `Permissions-Policy` ni COEP | Cabeceras en `vite.config.js` (CSP estricta en el build) |
 | H-06 | Integración | El formulario de titulares trataba el teléfono como opcional y la API lo exige | Campo obligatorio con el mismo patrón |
+
+## Riesgos aceptados
+
+| ID | Origen | Hallazgo | Decisión |
+|---|---|---|---|
+| R-01 | SCA (2026-11-17) | `picomatch` ≤ 4.0.7 (GHSA-fc5q-39xc-vjpf, ReDoS con extglobs), traído por `vite` (frontend) y `nodemon` (backend). El aviso cubre **todas** las versiones publicadas y no hay parche. | Solo dependencias de desarrollo: `npm audit --omit=dev` da 0 en ambos proyectos y el paquete no llega al bundle del navegador ni al servidor en producción. Los patrones glob los define el desarrollador, no el usuario. `npm audit fix --force` bajaría Vite a la 6.2.7 (cambio incompatible), así que se acepta y se revisa cuando salga el parche. |
 
 ## Falsos positivos analizados
 

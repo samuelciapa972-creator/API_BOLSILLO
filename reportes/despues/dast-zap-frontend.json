@@ -1,8 +1,8 @@
 {
 	"@programName": "ZAP",
 	"@version": "2.17.0",
-	"@generated": "Tue, 17 Nov 2026 00:16:33",
-	"created": "2026-11-17T00:16:33.100332857Z",
+	"@generated": "Tue, 17 Nov 2026 21:18:29",
+	"created": "2026-11-17T21:18:29.523118309Z",
 	"insights":[
 		{
 			"level": "Low",
@@ -18,7 +18,7 @@
 			"site": "",
 			"key": "insight.network.failure",
 			"description": "Percentage of network failures",
-			"statistic": "2"
+			"statistic": "3"
 		},
 		{
 			"level": "Info",
@@ -26,15 +26,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.code.2xx",
 			"description": "Percentage of responses with status code 2xx",
-			"statistic": "96"
-		},
-		{
-			"level": "Info",
-			"reason": "Informational",
-			"site": "http://host.docker.internal:4173",
-			"key": "insight.code.3xx",
-			"description": "Percentage of responses with status code 3xx",
-			"statistic": "3"
+			"statistic": "100"
 		},
 		{
 			"level": "Info",
@@ -42,7 +34,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.endpoint.ctype.font/woff2",
 			"description": "Percentage of endpoints with content type font/woff2",
-			"statistic": "20"
+			"statistic": "18"
 		},
 		{
 			"level": "Info",
@@ -50,7 +42,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.endpoint.ctype.image/svg+xml",
 			"description": "Percentage of endpoints with content type image/svg+xml",
-			"statistic": "10"
+			"statistic": "9"
 		},
 		{
 			"level": "Info",
@@ -58,7 +50,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.endpoint.ctype.text/css",
 			"description": "Percentage of endpoints with content type text/css",
-			"statistic": "10"
+			"statistic": "9"
 		},
 		{
 			"level": "Info",
@@ -66,7 +58,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.endpoint.ctype.text/html",
 			"description": "Percentage of endpoints with content type text/html",
-			"statistic": "50"
+			"statistic": "54"
 		},
 		{
 			"level": "Info",
@@ -74,7 +66,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.endpoint.ctype.text/javascript",
 			"description": "Percentage of endpoints with content type text/javascript",
-			"statistic": "10"
+			"statistic": "9"
 		},
 		{
 			"level": "Info",
@@ -90,7 +82,7 @@
 			"site": "http://host.docker.internal:4173",
 			"key": "insight.endpoint.total",
 			"description": "Count of total endpoints",
-			"statistic": "10"
+			"statistic": "11"
 		}
 	],
 	"site":[ 
@@ -112,19 +104,19 @@
 					"instances":[ 
 						{
 							"id": "10",
-							"uri": "http://host.docker.internal:4173/assets/index-D6onp9WV.js",
-							"nodeName": "http:\/\/host.docker.internal:4173\/assets\/index-D6onp9WV.js",
+							"uri": "http://host.docker.internal:4173/assets/index-mI0asLTB.js",
+							"nodeName": "http:\/\/host.docker.internal:4173\/assets\/index-mI0asLTB.js",
 							"method": "GET",
 							"param": "",
 							"attack": "",
-							"evidence": "i/auth/recuperacion/admin/${e}`,{metodo:`POST",
-							"otherinfo": "The following pattern was used: \\bADMIN\\b and was detected in likely comment: \"//,``).split(`/`);p=`/`+f.replace(/^\\//,``).split(`/`).slice(e.length).join(`/`)}let m=n&&n.state.matches.length?n.state.matches\", see evidence field for the suspicious comment/snippet."
+							"evidence": ".floor(E),children:`Todo`}):null]}):null]}),",
+							"otherinfo": "The following pattern was used: \\bTODO\\b and was detected in likely comment: \"//,``).split(`/`);p=`/`+f.replace(/^\\//,``).split(`/`).slice(e.length).join(`/`)}let m=n&&n.state.matches.length?n.state.matches\", see evidence field for the suspicious comment/snippet."
 						}
 					],
 					"count": "1",
 					"systemic": false,
 					"solution": "<p>Remove all comments that return information that may help an attacker and fix any underlying problems they refer to.</p>",
-					"otherinfo": "<p>The following pattern was used: \\bADMIN\\b and was detected in likely comment: \"//,``).split(`/`);p=`/`+f.replace(/^\\//,``).split(`/`).slice(e.length).join(`/`)}let m=n&&n.state.matches.length?n.state.matches\", see evidence field for the suspicious comment/snippet.</p>",
+					"otherinfo": "<p>The following pattern was used: \\bTODO\\b and was detected in likely comment: \"//,``).split(`/`);p=`/`+f.replace(/^\\//,``).split(`/`).slice(e.length).join(`/`)}let m=n&&n.state.matches.length?n.state.matches\", see evidence field for the suspicious comment/snippet.</p>",
 					"reference": "",
 					"cweid": "615",
 					"wascid": "13",
@@ -147,27 +139,27 @@
 							"method": "GET",
 							"param": "",
 							"attack": "",
-							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-D6onp9WV.js\"></script>",
+							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-mI0asLTB.js\"></script>",
 							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
 						},
 						{
-							"id": "13",
+							"id": "15",
 							"uri": "http://host.docker.internal:4173/",
 							"nodeName": "http:\/\/host.docker.internal:4173\/",
 							"method": "GET",
 							"param": "",
 							"attack": "",
-							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-D6onp9WV.js\"></script>",
+							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-mI0asLTB.js\"></script>",
 							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
 						},
 						{
-							"id": "19",
-							"uri": "http://host.docker.internal:4173/acceso",
-							"nodeName": "http:\/\/host.docker.internal:4173\/acceso",
+							"id": "0",
+							"uri": "http://host.docker.internal:4173/robots.txt",
+							"nodeName": "http:\/\/host.docker.internal:4173\/robots.txt",
 							"method": "GET",
 							"param": "",
 							"attack": "",
-							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-D6onp9WV.js\"></script>",
+							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-mI0asLTB.js\"></script>",
 							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
 						}
 					],
@@ -178,7 +170,7 @@
 					"reference": "",
 					"cweid": "-1",
 					"wascid": "-1",
-					"sourceid": "1"
+					"sourceid": "7"
 				},
 				{
 					"pluginid": "10049",
@@ -191,7 +183,7 @@
 					"desc": "<p>The response contents are storable by caching components such as proxy servers, but will not be retrieved directly from the cache, without validating the request upstream, in response to similar requests from other users.</p>",
 					"instances":[ 
 						{
-							"id": "6",
+							"id": "9",
 							"uri": "http://host.docker.internal:4173",
 							"nodeName": "http:\/\/host.docker.internal:4173",
 							"method": "GET",
@@ -202,8 +194,8 @@
 						},
 						{
 							"id": "5",
-							"uri": "http://host.docker.internal:4173/assets/index-DpjEUra2.css",
-							"nodeName": "http:\/\/host.docker.internal:4173\/assets\/index-DpjEUra2.css",
+							"uri": "http://host.docker.internal:4173/assets/index-BO24sUGY.css",
+							"nodeName": "http:\/\/host.docker.internal:4173\/assets\/index-BO24sUGY.css",
 							"method": "GET",
 							"param": "",
 							"attack": "",
@@ -211,7 +203,17 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "8",
+							"id": "4",
+							"uri": "http://host.docker.internal:4173/favicon.svg",
+							"nodeName": "http:\/\/host.docker.internal:4173\/favicon.svg",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "no-cache",
+							"otherinfo": ""
+						},
+						{
+							"id": "6",
 							"uri": "http://host.docker.internal:4173/robots.txt",
 							"nodeName": "http:\/\/host.docker.internal:4173\/robots.txt",
 							"method": "GET",
@@ -221,7 +223,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "9",
+							"id": "7",
 							"uri": "http://host.docker.internal:4173/sitemap.xml",
 							"nodeName": "http:\/\/host.docker.internal:4173\/sitemap.xml",
 							"method": "GET",
@@ -231,14 +233,14 @@
 							"otherinfo": ""
 						}
 					],
-					"count": "4",
+					"count": "5",
 					"systemic": true,
 					"solution": "",
 					"otherinfo": "",
 					"reference": "<p>https://datatracker.ietf.org/doc/html/rfc7234</p><p>https://datatracker.ietf.org/doc/html/rfc7231</p><p>https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html</p>",
 					"cweid": "524",
 					"wascid": "13",
-					"sourceid": "7"
+					"sourceid": "1"
 				}
 			]
 		}
