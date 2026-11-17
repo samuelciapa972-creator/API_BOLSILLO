@@ -1,8 +1,25 @@
 # Base de datos — API Bolsillo
 
-**Tecnología:** Supabase + PostgreSQL 16
-**Módulo:** Bloque 7 — Persistencia y modelo relacional
-**Estado:** 7.1 (esquema), 7.2 (conexión), 7.3 (login/auth), 7.4 (titulares/API Keys) y 7.5 (cuentas, bolsillos y transacciones atómicas) verificados en local y en Supabase (`us-east-2`, Session pooler). **Bloque 7 cerrado.**
+**Tecnología:** Supabase + PostgreSQL
+**Esquema:** `public` · **9 tablas**
+**Estado (proyecto final):** esquema consolidado con los Bloques 7 y 11. El orden completo de instalación de la sección 4 se comprobó sobre un PostgreSQL 16 vacío el 2026-11-16 (7 scripts sin errores, 9 tablas creadas).
+
+> Volver al [README del backend](../README.md) · [Índice del repositorio](../../README.md)
+
+## Instalación rápida (resumen)
+
+| Paso | Script | Resultado esperado |
+|---|---|---|
+| 1 | `01_esquema_bolsillo.sql` | 7 tablas base, FK, CHECK, índices, trigger de inmutabilidad |
+| 2 | `02_roles_seguridad.sql` | Roles `administrador`, `cliente`, `auditor`; RLS activo; `REVOKE` a `anon`/`authenticated` |
+| 3 | `11_3_version_sesion.sql` | Columna `usuarios_auth.version_sesion` (revocación de JWT) |
+| 4 | `11_4_password_reset_tokens.sql` | Tabla `password_reset_tokens` (hash del token, un solo uso) |
+| 5 | `11_4_2_codigos_recuperacion.sql` | Tabla `codigos_recuperacion` (hash de los códigos de respaldo) |
+| 6 | `03_verificacion.sql` | Solo lectura: comprobar roles, tablas, RLS, FK y privilegios |
+| 7 (opcional) | `04_datos_prueba.sql` | Datos de laboratorio (Ana y Carlos); no ejecutar en producción |
+| 8 | `npm run db:probar` y `npm run seed:admin` (desde `backend/`) | Conexión verificada y primer administrador |
+
+Los scripts `11_*` son **migraciones incrementales**: en una base que ya tiene el Bloque 7 se ejecutan solos, en ese orden. No usan `DROP` ni `TRUNCATE`.
 
 ## 1. Objetivo
 
@@ -18,6 +35,9 @@ En una billetera, la base de datos no solo almacena: es la **segunda línea de d
 | `02_roles_seguridad.sql` | Roles de negocio, RLS y `REVOKE` para `anon`/`authenticated` | No (inserta roles) |
 | `03_verificacion.sql` | Consultas de comprobación (solo lectura) | Sí |
 | `04_datos_prueba.sql` | Ana y Carlos, sus cuentas y el bolsillo, **con sus transacciones** | Sí (no duplica) |
+| `11_3_version_sesion.sql` | `version_sesion` en `usuarios_auth`: invalida JWT al cambiar o restablecer la clave | Sí (`IF NOT EXISTS`) |
+| `11_4_password_reset_tokens.sql` | Tokens de recuperación emitidos por un administrador (solo hash, expiración, un uso) | Sí (`IF NOT EXISTS`) |
+| `11_4_2_codigos_recuperacion.sql` | Ocho códigos de respaldo por usuario (solo hash, un uso) | Sí (`IF NOT EXISTS`) |
 
 ## 3. Crear el proyecto en Supabase
 
@@ -40,8 +60,27 @@ En **SQL Editor → New query**, en este orden, uno por consulta:
 
 1. `01_esquema_bolsillo.sql` → Run. En **Table Editor** deben aparecer 7 tablas.
 2. `02_roles_seguridad.sql` → Run.
-3. `03_verificacion.sql` → Run y comparar con la sección 7.
-4. (Opcional, laboratorio) `04_datos_prueba.sql`.
+3. `11_3_version_sesion.sql` → Run.
+4. `11_4_password_reset_tokens.sql` → Run.
+5. `11_4_2_codigos_recuperacion.sql` → Run. Ahora deben verse **9 tablas**.
+6. `03_verificacion.sql` → Run y comparar con la sección 7.
+7. (Opcional, laboratorio) `04_datos_prueba.sql`.
+
+> Probar los scripts sin Supabase: en un PostgreSQL local primero hay que simular lo que Supabase ya trae (`CREATE SCHEMA auth; CREATE TABLE auth.users (id uuid PRIMARY KEY); CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;`). Así se validó el orden de esta sección.
+
+### Tablas finales (9)
+
+| Tabla | Propósito | Relación principal |
+|---|---|---|
+| `roles` | Catálogo de perfiles de acceso | `usuarios_auth.rol_id → roles.id` |
+| `usuarios_auth` | Cuentas de inicio de sesión: hash bcrypt, estado, `version_sesion` | `auth_user_id → auth.users.id` (opcional) |
+| `usuarios` | Titulares de la billetera | `usuario_auth_id → usuarios_auth.id` (1:1 opcional) |
+| `cuentas` | Saldo total y estado | `usuario_id → usuarios.id` |
+| `bolsillos` | Metas de ahorro dentro de una cuenta | `cuenta_id → cuentas.id` |
+| `transacciones` | Movimientos inmutables | origen/destino → `cuentas`, `bolsillo_id → bolsillos` |
+| `api_keys` | Clientes de confianza (solo hash SHA-256) | Independiente |
+| `password_reset_tokens` | Recuperación autorizada por un administrador | `usuario_id` y `administrador_id → usuarios_auth.id` |
+| `codigos_recuperacion` | Códigos de respaldo de un solo uso | `usuario_id → usuarios_auth.id` |
 
 ## 5. Modelo de datos
 
@@ -95,7 +134,7 @@ Lo que sigue en Express (no se puede expresar con un CHECK simple): máximo 10 b
 
 ## 6. Row Level Security
 
-RLS está **activado** en las 7 tablas y **sin políticas**. Además, se aplica `REVOKE ALL` a `anon` y `authenticated`, de modo que nadie puede leer las tablas a través de la API de datos de Supabase.
+RLS está **activado** en las 9 tablas (7 del Bloque 7 + 2 del Bloque 11) y **sin políticas**. Además, se aplica `REVOKE ALL` a `anon` y `authenticated`, de modo que nadie puede leer las tablas a través de la API de datos de Supabase.
 
 > **Importante:** Express se conecta con un rol de servidor que **omite RLS**. Por eso RBAC y BOLA siguen siendo responsabilidad de Express. RLS no reemplaza esos controles: solo cierra el acceso directo desde fuera.
 
