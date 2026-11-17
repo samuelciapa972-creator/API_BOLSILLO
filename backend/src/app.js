@@ -74,6 +74,13 @@ const seguridadRoutes =
   );
 
 
+// Proyecto final: indicadores del panel
+const estadisticasRoutes =
+  require(
+    "./routes/estadisticas.routes"
+  );
+
+
 const authRoutes =
   require(
     "./routes/auth.routes"
@@ -237,8 +244,10 @@ const limiter =
       60 *
       1000,
 
+    // RATE_LIMIT_GLOBAL solo se sube para escaneos
+    // DAST locales; por defecto 100 / 15 min.
     limit:
-      100,
+      Number(process.env.RATE_LIMIT_GLOBAL) || 100,
 
     standardHeaders:
       "draft-8",
@@ -283,14 +292,20 @@ const recursosJWT = new Set([
   "/usuarios",
   "/cuentas",
   "/transacciones",
-  "/bolsillos"
+  "/bolsillos",
+  "/estadisticas"
 ]);
 
+// Proyecto final: /auth/usuarios (crear auditor o
+// administrador) se usa desde el panel React. Ya exige
+// JWT + rol administrador en auth.routes.js; la API Key
+// no puede vivir en el navegador.
 const rutasAuthJWT = new Set([
   "/auth/perfil",
   "/auth/cambiar-password",
   "/auth/recuperacion",
-  "/auth/codigos-recuperacion"
+  "/auth/codigos-recuperacion",
+  "/auth/usuarios"
 ]);
 
 app.use(
@@ -301,6 +316,22 @@ app.use(
     if (
       req.method === "POST" &&
       req.path === "/auth/login"
+    ) {
+      return next();
+    }
+
+    // Proyecto final: la SPA de React restablece
+    // contraseñas sin sesión y sin API Key (una API
+    // Key en el navegador deja de ser secreta). Las
+    // protegen el token o código de un solo uso
+    // (solo hash en BD), la validación y limiteReset
+    // (10 intentos / 15 min) en auth.routes.js.
+    if (
+      req.method === "POST" &&
+      (
+        req.path === "/auth/restablecer-password" ||
+        req.path === "/auth/restablecer-con-codigo"
+      )
     ) {
       return next();
     }
@@ -387,6 +418,12 @@ app.use(
 app.use(
   "/api/seguridad",
   seguridadRoutes
+);
+
+
+app.use(
+  "/api/estadisticas",
+  estadisticasRoutes
 );
 
 

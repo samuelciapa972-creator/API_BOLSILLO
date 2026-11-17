@@ -17,8 +17,19 @@ const validar = (
         mensaje:
           "Datos de entrada inválidos",
 
+        // Proyecto final (SAST manual): no se
+        // devuelve `value`. express-validator lo
+        // incluye por defecto y reflejaba en la
+        // respuesta lo enviado, incluidas
+        // contraseñas, códigos y tokens (CWE-209).
         errores:
-          errores.array()
+          errores
+            .array()
+            .map((error) => ({
+              campo: error.path,
+              ubicacion: error.location,
+              msg: error.msg
+            }))
       });
   }
 

@@ -333,8 +333,7 @@ router.get(
  *       Campos como activo, passwordHash o id se ignoran.
  *
  *     security:
- *       - ApiKeyAuth: []
- *         BearerAuth: []
+ *       - BearerAuth: []
  *
  *     requestBody:
  *       required: true
@@ -489,10 +488,9 @@ router.post(
  *       Restablecer la contraseña con el token temporal
  *     description: >
  *       Consume el token (un solo uso), cambia la contraseña e invalida
- *       las sesiones anteriores. Todavía exige API Key: no está
- *       preparada para el navegador (React).
- *     security:
- *       - ApiKeyAuth: []
+ *       las sesiones anteriores. Pública (la usa la SPA de React):
+ *       la protegen el token de un solo uso y el rate limit.
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -515,8 +513,6 @@ router.post(
  *         description: Contraseña restablecida y sesiones previas revocadas
  *       400:
  *         description: Token inválido, utilizado o expirado, o datos incorrectos
- *       401:
- *         description: API Key ausente o inválida
  *       429:
  *         description: Demasiados intentos
  */
@@ -635,8 +631,7 @@ router.post(
  *       Recuperar la contraseña con un código de respaldo de un solo uso
  *     description: >
  *       Todavía exige API Key: no está preparada para el navegador.
- *     security:
- *       - ApiKeyAuth: []
+ *     security: []
  *     requestBody:
  *       required: true
  *       content:
@@ -662,8 +657,6 @@ router.post(
  *         description: Contraseña restablecida
  *       400:
  *         description: Código o datos inválidos
- *       401:
- *         description: API Key ausente o inválida
  *       429:
  *         description: Demasiados intentos
  */
