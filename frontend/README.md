@@ -1,7 +1,7 @@
 # Frontend · Bolsillo (React + Vite)
 
 SPA de la billetera virtual Bolsillo. Consume la API REST del [backend](../backend/README.md) con `fetch` y JWT.
-**React 19 + Vite 8 + React Router 7**, CSS propio (sin plantillas), tipografías Fraunces e Instrument Sans empaquetadas con `@fontsource`.
+**React 19 + Vite 8 + React Router 7**, CSS propio (sin plantillas), tipografía Inter empaquetada con `@fontsource`.
 
 > Índice del repositorio: [`../README.md`](../README.md) · Dirección visual y decisiones de diseño: [`DESIGN.md`](./DESIGN.md)
 
@@ -41,7 +41,7 @@ Cómo se creó el proyecto (referencia):
 ```bash
 npm create vite@latest frontend -- --template react
 cd frontend
-npm install react-router-dom @fontsource-variable/fraunces @fontsource-variable/instrument-sans
+npm install react-router-dom @fontsource-variable/inter sonner @phosphor-icons/react motion
 ```
 
 ### Variables de entorno
@@ -72,7 +72,7 @@ Librerías de interfaz: `sonner` (avisos emergentes), `@phosphor-icons/react` (�
 ```text
 frontend/
 ├── index.html                 documento raíz (lang="es")
-├── DESIGN.md                  dirección visual "Libreta de ahorro"
+├── DESIGN.md                  dirección visual (base neutra + morado, Inter)
 ├── vite.config.js             puerto 5173 fijo (es el origen permitido por CORS)
 ├── eslint.security.config.js  reglas de SAST
 ├── public/favicon.svg

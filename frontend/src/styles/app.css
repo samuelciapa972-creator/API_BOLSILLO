@@ -30,10 +30,9 @@ h3 {
 }
 
 h1 {
-  font-family: var(--fuente-cifras);
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 h2 {
@@ -91,10 +90,9 @@ a {
 }
 
 .cifra {
-  font-family: var(--fuente-cifras);
-  font-variant-numeric: lining-nums tabular-nums;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 .texto-2 {
@@ -114,7 +112,7 @@ a {
 }
 
 .apartado {
-  color: var(--cobre);
+  color: var(--bolsillo);
 }
 
 /* ===================== Marco: lomo + página ===================== */
@@ -123,23 +121,20 @@ a {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100dvh;
-  /* Columna del lomo pintada en todo el alto (el lomo en sí es sticky). */
   background: linear-gradient(to right, var(--hoja) 247px, var(--linea) 247px 248px, transparent 248px);
 }
 
 .marca {
-  font-family: var(--fuente-cifras);
-  font-size: 1.375rem;
-  font-weight: 650;
+  font-size: 1.25rem;
+  font-weight: 800;
   text-decoration: none;
-  color: var(--tinta);
-  letter-spacing: -0.02em;
+  color: var(--marca);
+  letter-spacing: -0.035em;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
 }
 
-/* El lomo de la libreta: hoja con una costura punteada en el borde. */
 .lomo {
   position: sticky;
   top: 0;
@@ -150,16 +145,6 @@ a {
   padding: 20px 16px 16px;
   background: var(--hoja);
   border-right: 1px solid var(--linea);
-}
-
-.lomo::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 6px;
-  border-right: 1px dashed var(--linea);
-  pointer-events: none;
 }
 
 .lomo .marca {
@@ -191,7 +176,7 @@ a {
 }
 
 .nav-lateral__enlace[aria-current="page"] {
-  color: var(--tinta);
+  color: var(--marca);
   font-weight: 650;
 }
 
@@ -200,8 +185,7 @@ a {
   inset: 0;
   z-index: -1;
   border-radius: 6px;
-  background: var(--hoja-hundida);
-  box-shadow: inset 3px 0 0 var(--tinta);
+  background: var(--marca-suave);
 }
 
 .lomo__pie {
@@ -360,7 +344,7 @@ a {
   }
 
   .nav-inferior__enlace[aria-current="page"] {
-    color: var(--tinta);
+    color: var(--marca);
   }
 
   .nav-inferior__indicador {
@@ -372,7 +356,7 @@ a {
     margin-left: -28px;
     z-index: -1;
     border-radius: 8px;
-    background: var(--hoja-hundida);
+    background: var(--marca-suave);
   }
 }
 
@@ -694,7 +678,7 @@ a {
 .segmentos button[aria-selected="true"] {
   background: var(--hoja);
   color: var(--tinta);
-  box-shadow: 0 1px 2px rgba(30, 58, 45, 0.12);
+  box-shadow: 0 1px 2px rgba(22, 22, 26, 0.1);
 }
 
 .segmentos--chico {
@@ -848,8 +832,7 @@ a {
 }
 
 .entrada--monto {
-  font-family: var(--fuente-cifras);
-  font-size: 1.25rem;
+    font-size: 1.25rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -863,14 +846,13 @@ a {
   top: 50%;
   transform: translateY(-50%);
   color: var(--tinta-3);
-  font-family: var(--fuente-cifras);
-}
+  }
 
 .casilla-monto .entrada {
   padding-left: 28px;
 }
 
-/* Monto grande del formulario de movimientos: se escribe sobre una línea, como en la libreta. */
+/* Monto grande del formulario de movimientos, escrito sobre una línea. */
 .monto {
   display: grid;
   gap: 8px;
@@ -899,8 +881,7 @@ a {
 }
 
 .monto__caja > span {
-  font-family: var(--fuente-cifras);
-  font-size: 1.75rem;
+    font-size: 1.75rem;
   color: var(--tinta-3);
 }
 
@@ -1038,7 +1019,7 @@ a {
   padding-left: 18px;
 }
 
-/* Avisos emergentes (Sonner) con la piel de la libreta. */
+/* Avisos emergentes (Sonner) con los tokens de la app. */
 :root [data-sonner-toaster][data-sonner-theme] {
   --normal-bg: var(--hoja);
   --normal-border: var(--linea);
@@ -1110,23 +1091,12 @@ a {
   position: relative;
   display: grid;
   gap: 20px;
-  padding: 28px 28px 24px 34px;
+  padding: 28px;
   background: var(--hoja);
   border: 1px solid var(--linea);
   border-radius: var(--radio-dialogo);
   box-shadow: var(--sombra-hoja);
   overflow: hidden;
-}
-
-/* Encuadernación de la libreta: franja de tinta en el borde izquierdo. */
-.tapa::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 6px;
-  background: var(--tinta);
 }
 
 .tapa__cabeza {
@@ -1168,7 +1138,7 @@ a {
 }
 
 .tapa__cifra {
-  font-size: clamp(2.5rem, 7vw, 3.75rem);
+  font-size: clamp(2.5rem, 7vw, 3.5rem);
   line-height: 1;
 }
 
@@ -1179,7 +1149,7 @@ a {
 
 @media (max-width: 560px) {
   .tapa {
-    padding: 20px 16px 18px 22px;
+    padding: 20px 16px 18px;
     gap: 16px;
   }
 }
@@ -1312,7 +1282,7 @@ a {
 }
 
 .barra-saldo__tramo--bolsillo {
-  background: var(--cobre-tramo);
+  background: var(--bolsillo-tramo);
 }
 
 .barra-saldo__muesca {
@@ -1364,7 +1334,7 @@ a {
 }
 
 .muestra--apartado {
-  background: var(--cobre-tramo);
+  background: var(--bolsillo-tramo);
 }
 
 /* ===================== Bolsillos como sobres ===================== */
@@ -1379,25 +1349,11 @@ a {
   display: grid;
   align-content: start;
   gap: 12px;
-  padding: 26px 16px 14px;
+  padding: 16px 16px 14px;
   background: var(--hoja);
   border: 1px solid var(--linea);
   border-radius: var(--radio-hoja);
   box-shadow: var(--sombra-hoja);
-}
-
-/* Solapa del sobre: una V fina en la parte superior. */
-.sobre::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 16px;
-  background:
-    linear-gradient(to top right, transparent calc(50% - 0.6px), var(--linea) 50%, transparent calc(50% + 0.6px)) left / 50% 100% no-repeat,
-    linear-gradient(to top left, transparent calc(50% - 0.6px), var(--linea) 50%, transparent calc(50% + 0.6px)) right / 50% 100% no-repeat;
-  pointer-events: none;
 }
 
 .sobre--archivado {
@@ -1432,7 +1388,7 @@ a {
 .sobre__saldo {
   font-size: 1.625rem;
   line-height: 1.1;
-  color: var(--cobre);
+  color: var(--bolsillo);
 }
 
 .sobre__acciones {
@@ -1470,10 +1426,6 @@ a {
   transition:
     border-color 150ms var(--curva-salida),
     background-color 150ms var(--curva-salida);
-}
-
-.sobre--nuevo::before {
-  content: none;
 }
 
 .sobre--nuevo:hover:not(:disabled) {
@@ -1515,7 +1467,7 @@ a {
 }
 
 .anillo__avance {
-  stroke: var(--cobre-tramo);
+  stroke: var(--bolsillo-tramo);
   stroke-linecap: round;
   transition: stroke-dashoffset 700ms var(--curva-salida);
 }
@@ -1532,11 +1484,11 @@ a {
   place-items: center;
   font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--cobre);
+  color: var(--bolsillo);
 }
 
 .anillo__icono {
-  color: var(--cobre);
+  color: var(--bolsillo);
 }
 
 /* ===================== Extracto ===================== */
@@ -1579,7 +1531,6 @@ a {
   min-width: 0;
 }
 
-/* Línea punteada entre el tipo y el monto: el motivo de la libreta. */
 .extracto__concepto strong {
   display: flex;
   align-items: baseline;
@@ -1587,14 +1538,6 @@ a {
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
-}
-
-.extracto__concepto strong::after {
-  content: "";
-  flex: 1;
-  min-width: 16px;
-  border-bottom: 1px dotted var(--linea-fuerte);
-  transform: translateY(-4px);
 }
 
 .extracto__concepto > span {
@@ -1623,12 +1566,6 @@ a {
   margin-top: 8px;
 }
 
-@media (max-width: 560px) {
-  .extracto__concepto strong::after {
-    display: none;
-  }
-}
-
 .icono-mov {
   width: 34px;
   height: 34px;
@@ -1651,8 +1588,8 @@ a {
 }
 
 .icono-mov--apartado {
-  background: var(--cobre-suave);
-  color: var(--cobre);
+  background: var(--bolsillo-suave);
+  color: var(--bolsillo);
 }
 
 .celda-tipo {
@@ -1719,7 +1656,7 @@ a {
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--disponible-tramo);
+  background: var(--marca);
   transform-origin: left center;
   transition: transform 600ms var(--curva-salida);
 }
@@ -2017,8 +1954,7 @@ a {
 
 .cifras-cortas dd {
   margin: 2px 0 0;
-  font-family: var(--fuente-cifras);
-  font-size: 1.625rem;
+    font-size: 1.625rem;
   font-weight: 600;
   line-height: 1.15;
 }
@@ -2226,8 +2162,7 @@ a {
 }
 
 .hoja-lateral__cabeza h2 {
-  font-family: var(--fuente-cifras);
-  font-size: 1.375rem;
+    font-size: 1.375rem;
   font-weight: 600;
 }
 
@@ -2308,16 +2243,6 @@ a {
   overflow: hidden;
 }
 
-/* Costura de la tapa. */
-.acceso__libreta::after {
-  content: "";
-  position: absolute;
-  inset: 14px;
-  border: 1px dashed rgb(245 240 230 / 0.18);
-  border-radius: 6px;
-  pointer-events: none;
-}
-
 .acceso__libreta .marca {
   color: inherit;
 }
@@ -2328,11 +2253,10 @@ a {
 }
 
 .acceso__lema {
-  font-family: var(--fuente-cifras);
-  font-size: clamp(1.875rem, 3.4vw, 2.75rem);
-  line-height: 1.12;
-  font-weight: 500;
-  letter-spacing: -0.015em;
+    font-size: clamp(1.875rem, 3.4vw, 2.75rem);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.035em;
   max-width: 16ch;
 }
 
@@ -2380,15 +2304,15 @@ a {
 }
 
 .regla__tramo--disponible {
-  background: #7fbf95;
+  background: #ffffff;
 }
 
 .regla__tramo--bolsillo {
-  background: #d38c52;
+  background: #c4b0ff;
 }
 
 .regla__hueco {
-  border: 1px dashed rgb(245 240 230 / 0.28);
+  border: 1px dashed rgb(255 255 255 / 0.4);
 }
 
 .regla figcaption {
@@ -2439,10 +2363,6 @@ a {
   .acceso__libreta {
     padding: 28px 24px;
     gap: 12px;
-  }
-
-  .acceso__libreta::after {
-    inset: 8px;
   }
 
   .acceso__centro {

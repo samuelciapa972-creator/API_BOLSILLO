@@ -22,13 +22,13 @@ ZAP by [Checkmarx](https://checkmarx.com/).
 | Low | Warning |  | ZAP warnings logged - see the zap.log file for details | 3    |
 | Info | Informational |  | Percentage of network failures | 3 % |
 | Info | Informational | http://host.docker.internal:4173 | Percentage of responses with status code 2xx | 100 % |
-| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type font/woff2 | 18 % |
-| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type image/svg+xml | 9 % |
-| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type text/css | 9 % |
-| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type text/html | 54 % |
-| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type text/javascript | 9 % |
+| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type font/woff2 | 11 % |
+| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type image/svg+xml | 11 % |
+| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type text/css | 11 % |
+| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type text/html | 55 % |
+| Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with content type text/javascript | 11 % |
 | Info | Informational | http://host.docker.internal:4173 | Percentage of endpoints with method GET | 100 % |
-| Info | Informational | http://host.docker.internal:4173 | Count of total endpoints | 11    |
+| Info | Informational | http://host.docker.internal:4173 | Count of total endpoints | 9    |
 
 
 
@@ -61,8 +61,8 @@ ZAP by [Checkmarx](https://checkmarx.com/).
 
 The response appears to contain suspicious comments which may help an attacker.
 
-* URL: http://host.docker.internal:4173/assets/index-mI0asLTB.js
-  * Node Name: `http://host.docker.internal:4173/assets/index-mI0asLTB.js`
+* URL: http://host.docker.internal:4173/assets/index-CBgxguOT.js
+  * Node Name: `http://host.docker.internal:4173/assets/index-CBgxguOT.js`
   * Method: `GET`
   * Parameter: ``
   * Attack: ``
@@ -97,26 +97,26 @@ Remove all comments that return information that may help an attacker and fix an
 
 The application appears to be a modern web application. If you need to explore it automatically then the Client Spider may well be more effective than the standard one.
 
-* URL: http://host.docker.internal:4173
-  * Node Name: `http://host.docker.internal:4173`
-  * Method: `GET`
-  * Parameter: ``
-  * Attack: ``
-  * Evidence: `<script type="module" crossorigin src="/assets/index-mI0asLTB.js"></script>`
-  * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
 * URL: http://host.docker.internal:4173/
   * Node Name: `http://host.docker.internal:4173/`
   * Method: `GET`
   * Parameter: ``
   * Attack: ``
-  * Evidence: `<script type="module" crossorigin src="/assets/index-mI0asLTB.js"></script>`
+  * Evidence: `<script type="module" crossorigin src="/assets/index-CBgxguOT.js"></script>`
+  * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
+* URL: http://host.docker.internal:4173/acceso
+  * Node Name: `http://host.docker.internal:4173/acceso`
+  * Method: `GET`
+  * Parameter: ``
+  * Attack: ``
+  * Evidence: `<script type="module" crossorigin src="/assets/index-CBgxguOT.js"></script>`
   * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
 * URL: http://host.docker.internal:4173/robots.txt
   * Node Name: `http://host.docker.internal:4173/robots.txt`
   * Method: `GET`
   * Parameter: ``
   * Attack: ``
-  * Evidence: `<script type="module" crossorigin src="/assets/index-mI0asLTB.js"></script>`
+  * Evidence: `<script type="module" crossorigin src="/assets/index-CBgxguOT.js"></script>`
   * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
 
 Instances: Systemic
@@ -150,8 +150,8 @@ The response contents are storable by caching components such as proxy servers, 
   * Attack: ``
   * Evidence: `no-cache`
   * Other Info: ``
-* URL: http://host.docker.internal:4173/assets/index-BO24sUGY.css
-  * Node Name: `http://host.docker.internal:4173/assets/index-BO24sUGY.css`
+* URL: http://host.docker.internal:4173/assets/index-BU97bMPz.css
+  * Node Name: `http://host.docker.internal:4173/assets/index-BU97bMPz.css`
   * Method: `GET`
   * Parameter: ``
   * Attack: ``

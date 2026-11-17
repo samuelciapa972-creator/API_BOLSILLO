@@ -1,47 +1,29 @@
 # Bolsillo · Dirección visual
 
-Dirección elegida por el equipo: **"Libreta de ahorro"**.
-
-Dial: ENERGY 2 / RHYTHM 2 / MOTION 1
-
-## Lectura del diseño
-
-Panel web de una billetera virtual para tres perfiles (cliente, administrador y
-auditor), en un lenguaje de libreta bancaria impresa: papel crema, tinta verde
-y un único acento cobre.
+Dirección elegida por el equipo (17/11/2026): **base neutra + un solo color de marca**, como una app bancaria real. Reemplaza a la primera dirección "Libreta de ahorro" (papel crema, tinta verde, cobre y cifras con serif), que el equipo descartó porque se veía genérica.
 
 ## Por qué cada decisión
 
 | Decisión | Valor | Razón |
 |---|---|---|
-| Fondo | papel crema `#F5F0E6` | Una libreta de ahorro es papel, no una pantalla blanca de hospital. |
-| Texto y acción principal | tinta verde `#1E3A2D` | La tinta de los sellos y del dinero; da contraste AA sobre el papel. |
-| Acento único | cobre `#9A5220` | El color de las monedas. Se usa **solo** para lo apartado en bolsillos. |
-| Débito / crédito | rojo tinta / verde | Convención contable del extracto; nunca decorativos. |
-| Cifras grandes | Fraunces (serif) | Recuerda los números impresos de una libreta; solo para saldos. |
-| Interfaz | Instrument Sans | Legible a 14 px, con números tabulares para alinear montos. |
-| Profundidad | bordes finos + sombra mínima en la hoja | Hojas sobre una mesa: una sola elevación, sin tarjetas flotando. |
-| Radio | 4 px controles · 8 px hojas · 12 px diálogos | Papel cortado, no píldoras. |
-| Espaciado | base 4 px; 16/24 dentro de hojas, 40 entre bloques | Densidad de extracto, con aire entre secciones. |
-| Movimiento | hover, foco, entrada de página (240 ms), hoja deslizable (320 ms), indicador de navegación con resorte sin rebote y la cifra del saldo que cuenta solo cuando cambia por un movimiento | Cada animación explica un cambio de estado; nada se mueve por adorno. Respeta `prefers-reduced-motion`. |
+| Fondo | gris muy claro `#F6F6F8`, tarjetas blancas | Neutro: el dinero y las acciones son lo único que llama la atención. |
+| Texto | casi negro `#16161A` | Contraste alto sin el negro puro. |
+| Marca | morado `#6A2CF5` | Único color de marca: botón principal, navegación activa y **bolsillos**. Texto blanco sobre morado: contraste 7:1. |
+| Entradas / salidas | verde `#0E7A46` / rojo `#C62A22` | Solo para el sentido de los montos; nunca decorativos. |
+| Tipografía | Inter (variable) para todo | Una sola familia. Los saldos van en Inter 700 con `tabular-nums` y tracking negativo, como en las apps de banca. |
+| Radio | 10 px controles · 14 px tarjetas · 18 px diálogos | Suave y actual, sin llegar a píldoras. |
+| Profundidad | bordes de 1 px + sombra mínima | Una sola elevación; el diálogo es lo único que flota. |
+| Modo oscuro | fondo `#0E0E11`, morado aclarado `#A78BFA` | Mismo sistema; solo cambia la luz. |
+| Movimiento | hover, foco, entrada de página (240 ms), hoja deslizable (320 ms), indicador de navegación con resorte sin rebote, saldo que cuenta solo cuando cambia por un movimiento | Cada animación explica un cambio de estado. Respeta `prefers-reduced-motion`. |
 
 ## Firma
 
-**La barra de saldo partida**: cada cuenta muestra su saldo total como una
-barra donde el tramo verde es lo disponible y cada bolsillo ocupa un tramo cobre
-separado por una muesca. Refleja la regla central del negocio:
+**La barra de saldo partida**: el saldo total como una barra donde el tramo oscuro es lo disponible y cada bolsillo ocupa un tramo morado. Refleja la regla central del negocio:
 `saldo disponible = saldo total − suma de bolsillos activos`.
-
-**Navegación**: el "lomo" de la libreta (barra lateral con costura punteada) en PC y pestañas inferiores en el celular. Los bolsillos son **sobres** con una solapa en V y un anillo de avance hacia la meta.
-
-**Motivo repetido**: las filas del extracto con línea punteada entre el
-concepto y el monto, como en una libreta impresa.
 
 ## Lo que se evita a propósito
 
-- Sidebar oscuro con degradado y héroe con fotos de stock (el look del
-  prototipo hospital).
-- Tarjetas de métricas idénticas en cuadrícula: el panel tiene un solo foco
-  (el saldo) y el resto se subordina.
-- Logos o avatares inventados: la marca es la palabra "Bolsillo" en Fraunces y
-  los avatares son iniciales.
+- Papel crema, tonos tierra y cifras con serif: la combinación típica de interfaces generadas.
+- Degradados, sombras de color y efectos de vidrio.
+- Tarjetas de métricas idénticas en cuadrícula: el panel tiene un solo foco (el saldo).
+- Logos o avatares inventados: la marca es la palabra "Bolsillo" y los avatares son iniciales.

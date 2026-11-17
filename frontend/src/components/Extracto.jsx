@@ -15,7 +15,7 @@ const etiquetaDia = (fecha) => {
 const hora = new Intl.DateTimeFormat("es-CO", { hour: "2-digit", minute: "2-digit" });
 
 /**
- * Movimientos como libreta: agrupados por día, con ícono por tipo, concepto
+ * Movimientos agrupados por día, con ícono por tipo, concepto
  * con línea punteada y monto con signo. `cuentaId` (o `_cuenta` por fila)
  * define el signo desde el punto de vista de una cuenta.
  */

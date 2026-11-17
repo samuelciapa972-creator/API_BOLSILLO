@@ -23,7 +23,7 @@ La regla central del negocio: **saldo disponible = saldo total − suma de los b
 | Base de datos | [`backend/database/README.md`](./backend/database/README.md) | Orden de los scripts SQL, modelo de 9 tablas, RLS, verificación |
 | Backend (BE) | [`backend/README.md`](./backend/README.md) | Instalación, `.env`, scripts, arquitectura, roles, endpoints, controles |
 | Frontend (FE) | [`frontend/README.md`](./frontend/README.md) | Instalación, pantallas por rol, estructura, sesión, accesibilidad |
-| Diseño | [`frontend/DESIGN.md`](./frontend/DESIGN.md) | Dirección visual "Libreta de ahorro" y el porqué de cada decisión |
+| Diseño | [`frontend/DESIGN.md`](./frontend/DESIGN.md) | Dirección visual (base neutra + morado de marca, Inter) y el porqué de cada decisión |
 | Pruebas de seguridad | [`reportes/README.md`](./reportes/README.md) | SCA, SAST, DAST y pruebas de API: herramientas, comandos y resultados |
 | Historial | [`backend/HISTORIAL_LABORATORIOS.md`](./backend/HISTORIAL_LABORATORIOS.md) | Labs 8, 9 y 10 y Bloques 7, 7.5.1 y 11 |
 

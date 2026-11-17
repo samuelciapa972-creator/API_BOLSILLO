@@ -80,7 +80,7 @@ export function AccesoPage() {
   return (
     <MarcoAcceso>
       <div>
-        <h1>Entrar a tu libreta</h1>
+        <h1>Inicia sesión</h1>
         <p className="texto-2" style={{ marginTop: 8 }}>
           Usa el correo y la contraseña de tu cuenta Bolsillo.
         </p>
